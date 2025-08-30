@@ -47,7 +47,7 @@ export default function ProfileDropdown() {
     const updatePosition = () => {
       if (!buttonRef.current) return;
       const rect = buttonRef.current.getBoundingClientRect();
-      const menuWidth = 220;
+      const menuWidth = 200;
       const padding = 8;
 
       let left = rect.right - menuWidth;
@@ -95,7 +95,12 @@ export default function ProfileDropdown() {
       </li>
       <li>
         <a href="#" role="menuitem">
-          Share with Friends
+          Liked Movies
+        </a>
+      </li>
+      <li>
+        <a href="#" role="menuitem">
+          Logout
         </a>
       </li>
     </ul>
