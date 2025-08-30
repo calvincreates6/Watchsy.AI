@@ -16,13 +16,13 @@ function Card(props) {
           }}
         />
 
-        <h2 style={styles.title}>{props.title}</h2>
+        <h2 style={styles.title} className="content-title">{props.title}</h2>
 
         <hr style={styles.line} />
 
         <div style={styles.infoSection}>
           <div style={styles.infoRow}>
-            <span style={styles.label}>IMDB Rating:</span>
+            <span style={styles.label} className="form-label">IMDB Rating:</span>
             <div style={styles.rating}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gold" viewBox="0 0 16 16">
                 <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
@@ -32,29 +32,29 @@ function Card(props) {
           </div>
 
           <div style={styles.infoRow}>
-            <span style={styles.label}>Release Year:</span>
-            <span style={styles.detail}>{props.year}</span>
+            <span style={styles.label} className="form-label">Release Year:</span>
+            <span style={styles.detail} className="content-body">{props.year}</span>
           </div>
 
           <div style={styles.infoRow}>
-            <span style={styles.label}>Genres:</span>
+            <span style={styles.label} className="form-label">Genres:</span>
             <div style={styles.genreList}>
               {props.genres.map((genre, idx) => (
-                <span key={idx} style={styles.genre}>
+                <span key={idx} style={styles.genre} className="accent-text">
                   {genre}
                 </span>
               ))}
             </div>
           </div>
         </div>
-      </div>
 
-      <hr style={styles.line} />
+        <hr style={styles.line} />
 
-      <div style={styles.actions}>
-        <button className="card-button" style={styles.button}>⏰ Watch Later</button>
-        <button className="card-button" style={styles.button}>❤️ Liked</button>
-        <button className="card-button" style={styles.button}>🔁 Rewatch</button>
+        <div style={styles.actions}>
+          <button className="card-button btn-secondary" style={styles.button}>⏰ Watch Later</button>
+          <button className="card-button btn-secondary" style={styles.button}>❤️ Liked</button>
+          <button className="card-button btn-secondary" style={styles.button}>🔁 Rewatch</button>
+        </div>
       </div>
     </div>
   );

@@ -124,9 +124,10 @@ function Header({ onSearch, transparent = false }) {
               x="80"
               y="45"
               fill="url(#textGradient)"
-              fontFamily="Arial, sans-serif"
+              fontFamily="Orbitron, Arial, sans-serif"
               fontSize="28"
-              fontWeight="bold"
+              fontWeight="900"
+              className="logo-text"
             >
               Watchsy
             </text>
@@ -134,9 +135,10 @@ function Header({ onSearch, transparent = false }) {
               x="80"
               y="60"
               fill="#f5f6fa"
-              fontFamily="Arial, sans-serif"
+              fontFamily="Righteous, Arial, sans-serif"
               fontSize="12"
               letterSpacing="1"
+              className="brand-tagline"
             >
               track what you watch
             </text>
@@ -144,9 +146,10 @@ function Header({ onSearch, transparent = false }) {
               x="80"
               y="72"
               fill="#f5f6fa"
-              fontFamily="Arial, sans-serif"
+              fontFamily="Righteous, Arial, sans-serif"
               fontSize="12"
               letterSpacing="1"
+              className="brand-tagline"
             >
               share what you love!
             </text>
@@ -159,7 +162,7 @@ function Header({ onSearch, transparent = false }) {
             <input
               id="my-search-bar"
               type="search"
-              className="form-control"
+              className="form-control form-input"
               placeholder="Search for movies, series..."
               aria-label="Search for movies and TV shows"
               value={query}
@@ -176,7 +179,7 @@ function Header({ onSearch, transparent = false }) {
               }}
             />
             <button
-            className="search-button"
+            className="search-button btn-primary"
               type="submit"
             >
               Search

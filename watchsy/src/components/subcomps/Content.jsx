@@ -113,15 +113,16 @@ function Content({ searchQuery }) {
       <div style={hero.overlay} />
       <div style={hero.content}>
         <div style={hero.textSection}>
-          <h1 style={hero.title}>
+          <h1 style={hero.title} className="content-title">
             Track What You Watch, <span style={hero.highlight}>Share What You Love</span>
           </h1>
-          <p style={hero.subtitle}>
+          <p style={hero.subtitle} className="content-body">
             Discover, organize, and share your favorite movies and TV shows. Build your personal watchlist and connect with fellow movie enthusiasts.
           </p>
           <div style={hero.ctaSection}>
             <button
               style={hero.primaryButton}
+              className="btn-primary"
               onMouseEnter={(e) => e.target.style.transform = "translateY(-3px)"}
               onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
               onClick={function(){
@@ -156,6 +157,7 @@ function Content({ searchQuery }) {
             </button>
             <button
               style={hero.secondaryButton}
+              className="btn-secondary"
               onMouseEnter={(e) => e.target.style.transform = "translateY(-3px)"}
               onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
             >
@@ -163,9 +165,9 @@ function Content({ searchQuery }) {
             </button>
           </div>
           <div style={hero.features}>
-            <div style={hero.feature}><span style={hero.featureIcon}>🔍</span> Search & Discover</div>
-            <div style={hero.feature}><span style={hero.featureIcon}>❤️</span> Save Favorites</div>
-            <div style={hero.feature}><span style={hero.featureIcon}>👥</span> Share With Friends</div>
+            <div style={hero.feature} className="accent-text"><span style={hero.featureIcon}>🔍</span> Search & Discover</div>
+            <div style={hero.feature} className="accent-text"><span style={hero.featureIcon}>❤️</span> Save Favorites</div>
+            <div style={hero.feature} className="accent-text"><span style={hero.featureIcon}>👥</span> Share With Friends</div>
           </div>
         </div>
         <div style={hero.visualSection}>
@@ -271,11 +273,11 @@ function Content({ searchQuery }) {
       {movies.length > 0 ? (
         <>
           <div style={styles.searchHeader}>
-            <h2 style={styles.searchTitle}>Search Results for "{searchQuery}"</h2>
-            <p style={styles.resultCount}>{movies.length} movies found</p>
+            <h2 style={styles.searchTitle} className="content-title">Search Results for "{searchQuery}"</h2>
+            <p style={styles.resultCount} className="content-body">{movies.length} movies found</p>
           </div>
           <div style={styles.movieGrid}>
-            {movies.map((movie, index) => (
+            {movies.map((movie) => (
               <Card
                 key={movie.id}
                 title={movie.title}
@@ -283,17 +285,15 @@ function Content({ searchQuery }) {
                 rating={movie.vote_average}
                 year={movie.release_date?.split("-")[0]}
                 genres={getGenreNames(movie.genre_ids || [])}
-                onClick={() => handleCardClick(index)}
-                data-card-index={index}
               />
             ))}
           </div>
         </>
       ) : (
         <div style={styles.noResults}>
-          <h2>No movies found</h2>
-          <p>Try searching for a different movie or TV show</p>
-          <button style={hero.secondaryButton} onClick={() => window.location.reload()}>🔄 Clear Search</button>
+          <h2 className="content-title">No movies found</h2>
+          <p className="content-body">Try searching for a different movie or TV show</p>
+          <button style={hero.secondaryButton} className="btn-secondary" onClick={() => window.location.reload()}>🔄 Clear Search</button>
         </div>
       )}
     </div>
