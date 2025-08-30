@@ -1,0 +1,306 @@
+@font-face {
+    font-family: 'GoogleFont';
+    src: url('./Product\ Sans\ Regular.ttf') format('ttf');
+  }
+  
+
+body, html {
+  background: rgba(255, 255, 255, 0.1);
+  /* color: var(--color-text); */
+  transition: background 0.3s, color 0.3s;
+}
+
+#particles canvas{
+  z-index: -1;
+  height: 50%;
+  width: 100%;
+  position: absolute;
+}
+
+input::placeholder{
+  padding: 6px;
+  font-family:'Trebuchet MS';
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+input:focus {
+  &::-webkit-input-placeholder {
+     color: transparent;
+     -webkit-transition: color 0.2s ease;
+     transition: color 0.2s ease;
+  }
+
+  &:-moz-placeholder { /* Firefox 18- */
+     color: transparent;
+     -webkit-transition: color 0.2s ease;
+     transition: color 0.2s ease;
+  }
+
+  &::-moz-placeholder {  /* Firefox 19+ */
+     color: transparent;
+     -webkit-transition: color 0.2s ease;
+     transition: color 0.2s ease;
+  }
+
+  &:-ms-input-placeholder {  
+     color: transparent;
+     -webkit-transition: color 0.2s ease;
+     transition: color 0.2s ease;
+  }
+}
+
+h2{
+  font-family: 'Roboto Slab';
+}
+
+#email-form{
+  height: 50%;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+#submit{
+  font-size: 15px;
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+.signUp{
+  color: rgb(65, 65, 247);
+  cursor: pointer;
+}
+
+#signUpSubmit{
+  visibility:hidden;
+}
+
+.search-button {
+  margin-left: 10px;
+  padding: 8px 18px;
+  border-radius: 25px;
+  border: none;
+  background: linear-gradient(45deg, #FDBB2D 0%, #22C1C3 100%);
+  color: #fff;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.search-button:hover{
+  box-shadow: 0 0 6px 0 #22C1C3;
+  transition: all 0.2s ease;
+}
+
+.card-button {
+  background-color: #eee;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.card-button:hover {
+  background-color: #ddd;
+  transform: scale(1.05);
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+
+@property --angle{
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+#container0 {
+  width: 310px;  /* Match login form size */
+  height: 310px; /* Reduce excess height */
+  padding: 3px;
+  border-radius: 10px;
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1; /* Ensure it's on top */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#container {
+  width: 300px;
+  height: 320px; /* Slightly smaller than #container0 */
+  text-align: center;
+  padding: 20px;
+  z-index: 2; /* Ensures it's above #container0 */
+  background: var(--color-bg);
+  border-radius: 10px;
+}
+
+
+
+#container0::after, #container0::before{
+  
+  content: '';
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-image: conic-gradient(from var(--angle), black 40%, white);
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: -1;
+  padding: 3px;
+  border-radius: 10px;
+  animation: 3s spin linear infinite;
+}
+
+#container0::before{
+  filter: blur(1.5rem);
+  opacity: 0.5;
+}
+
+@keyframes spin{
+  from{
+    --angle: 0deg;
+  }
+  to{
+    --angle: 360deg; 
+  }
+}
+
+/* Hero Movie Cards Styles */
+.fallback-emoji {
+  display: none !important;
+}
+
+/* Ensure movie posters are properly sized */
+.hero-movie-card {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-movie-card .movie-rating {
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Hero movie card hover effects */
+.hero-movie-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+}
+
+/* Movie information overlays */
+.hero-movie-card .movie-rating,
+.hero-movie-card .movie-votes,
+.hero-movie-card .movie-title {
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.hero-movie-card:hover .movie-rating,
+.hero-movie-card:hover .movie-votes,
+.hero-movie-card:hover .movie-title {
+  opacity: 1;
+}
+
+/* Playing card animation classes */
+.hero-movie-card.moving-to-back {
+  transform: translateY(80px) translateX(-20px) scale(0.85) rotate(-5deg) !important;
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  filter: brightness(0.7);
+}
+
+.hero-movie-card.coming-forward {
+  transform: translateY(0) scale(1) !important;
+  z-index: 10;
+  animation: cardReveal 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes cardReveal {
+  0% {
+    transform: translateY(15px) scale(0.98);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-2px) scale(1.01);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Card stack positioning */
+.hero-movie-card:nth-child(1) {
+  z-index: 30;
+}
+
+.hero-movie-card:nth-child(2) {
+  z-index: 20;
+}
+
+.hero-movie-card:nth-child(3) {
+  z-index: 10;
+}
+
+/* Smooth transitions for all card properties */
+.hero-movie-card {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effect to show cards are interactive */
+.hero-movie-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+  cursor: pointer;
+}
+
+/* Active state for clicked cards */
+.hero-movie-card:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+/* Click hint styling */
+.click-hint {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+.hero-movie-card:hover .click-hint {
+  opacity: 0.9;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Ensure smooth card stacking */
+.hero-movie-card {
+  will-change: transform, opacity, z-index;
+}
+
+/* Prevent text selection during animation */
+.hero-movie-card.moving-to-back {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Search bar highlight effect */
+#my-search-bar:focus {
+  border-color: #ffd93d !important;
+  box-shadow: 0 0 20px rgba(255, 217, 61, 0.4) !important;
+  transition: all 0.3s ease;
+}
+
+/* Smooth scroll behavior for the page */
+html {
+  scroll-behavior: smooth;
+}
