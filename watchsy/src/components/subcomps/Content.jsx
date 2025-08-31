@@ -198,6 +198,8 @@ function Content({ searchQuery }) {
                     className="hero-movie-card"
                     data-card-index={displayIndex}
                     onClick={() => handleCardClick(displayIndex)}
+                    onMouseEnter={(e) => e.target.style.boxShadow = "0 15px 35px rgba(0, 255, 255, 0.3)"}
+                    onMouseLeave={(e) => e.target.style.boxShadow = "0 10px 30px rgba(0,0,0,0.3)"}
                     style={{
                       ...hero.movieCard,
                       transform: `rotate(${rotation}deg)`,

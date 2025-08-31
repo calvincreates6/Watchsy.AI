@@ -5,6 +5,7 @@ import { auth } from "./firebaseConfig";
 import Login from "./components/Login";
 import Homepage from "./components/HomePage";
 import Profile from "./components/Profile";
+import Watchlist from "./components/Watchlist";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 // Protected Route Component
@@ -92,6 +93,11 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/watchlist" element={
+          <ProtectedRoute>
+            <Watchlist />
           </ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />

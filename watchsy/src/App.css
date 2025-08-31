@@ -1,21 +1,19 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&family=Jost:ital,wght@0,100..900;1,100..900&family=Nunito+Sans:ital,opsz,wght@0,6..12,200..1000;1,6..12,200..1000&family=Pinyon+Script&family=Press+Start+2P&family=Roboto+Slab:wght@100..900&family=Rubik+80s+Fade&family=Rubik+Pixels&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&family=Jost:ital,wght@0,100..900;1,100..900&family=Pinyon+Script&family=Press+Start+2P&family=Roboto+Slab:wght@100..900&family=Rubik+80s+Fade&family=Rubik+Pixels&display=swap');
 
 /* Typography System */
 :root {
   /* Font Families */
-  --font-display: 'Orbitron', 'Exo 2', sans-serif;        /* Headlines, Brand */
+  --font-display: 'Georama', 'Jost', sans-serif;        /* Headlines, Brand */
   --font-heading: 'Exo 2', 'Montserrat', sans-serif;      /* Section Headers */
   --font-body: 'Quicksand', 'Comfortaa', sans-serif;      /* Body Text */
   --font-accent: 'Righteous', 'Fredoka One', cursive;     /* Accent Text */
-  --font-ui: 'Josefin Sans', 'Montserrat', sans-serif;    /* UI Elements */
+  --font-ui: 'Georama', 'Jost', sans-serif;    /* UI Elements */
   
   /* Font Weights */
   --weight-light: 300;
@@ -70,13 +68,13 @@ h1, h2, h3, h4, h5, h6 {
 /* Button Typography */
 .btn-primary {
   font-family: var(--font-ui);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-light);
   letter-spacing: 0.025em;
 }
 
 .btn-secondary {
   font-family: var(--font-ui);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-light);
   letter-spacing: 0.025em;
 }
 
