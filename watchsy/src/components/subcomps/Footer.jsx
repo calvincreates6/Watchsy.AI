@@ -7,34 +7,34 @@ function Footer() {
         <div style={styles.brandSection}>
           <div style={styles.logoRow}>
             <span style={styles.logoIcon}>🎬</span>
-            <span style={styles.brand}>Watchsy</span>
+            <span style={styles.brand} className="logo-text">Watchsy</span>
           </div>
-          <p style={styles.tagline}>Track what you watch. Share what you love.</p>
+          <p style={styles.tagline} className="brand-tagline">Track what you watch. Share what you love.</p>
         </div>
 
         <div style={styles.linksSection}>
           <div style={styles.column}>
-            <h4 style={styles.heading}>Product</h4>
-            <a style={styles.link} href="#">Discover</a>
-            <a style={styles.link} href="#">Watchlist</a>
-            <a style={styles.link} href="#">Trending</a>
+            <h4 style={styles.heading} className="content-title">Product</h4>
+            <a style={styles.link} href="#" className="nav-link">Discover</a>
+            <a style={styles.link} href="#" className="nav-link">Watchlist</a>
+            <a style={styles.link} href="#" className="nav-link">Trending</a>
           </div>
           <div style={styles.column}>
-            <h4 style={styles.heading}>Company</h4>
-            <a style={styles.link} href="#">About</a>
-            <a style={styles.link} href="#">Contact</a>
-            <a style={styles.link} href="#">Careers</a>
+            <h4 style={styles.heading} className="content-title">Company</h4>
+            <a style={styles.link} href="#" className="nav-link">About</a>
+            <a style={styles.link} href="#" className="nav-link">Contact</a>
+            <a style={styles.link} href="#" className="nav-link">Careers</a>
           </div>
           <div style={styles.column}>
-            <h4 style={styles.heading}>Resources</h4>
-            <a style={styles.link} href="#">Help Center</a>
-            <a style={styles.link} href="#">Terms</a>
-            <a style={styles.link} href="#">Privacy</a>
+            <h4 style={styles.heading} className="content-title">Resources</h4>
+            <a style={styles.link} href="#" className="nav-link">Help Center</a>
+            <a style={styles.link} href="#" className="nav-link">Terms</a>
+            <a style={styles.link} href="#" className="nav-link">Privacy</a>
           </div>
         </div>
 
         <div style={styles.socialSection}>
-          <h4 style={styles.heading}>Follow</h4>
+          <h4 style={styles.heading} className="content-title">Follow</h4>
           <div style={styles.socialRow}>
             <a style={styles.social} href="#" aria-label="Twitter">🐦</a>
             <a style={styles.social} href="#" aria-label="Instagram">📷</a>

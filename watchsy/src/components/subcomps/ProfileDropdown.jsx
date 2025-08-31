@@ -1,13 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
 import ReactDOM from "react-dom";
-import ProfileImage from "../../assets/Website_Name_Color.jpg";
+import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth"; // ⬅️ import Firebase signOut
+import { auth } from "../../firebaseConfig"; // ⬅️ import your Firebase auth instance
+import Image from "../../assets/watchsy.jpg";
 import "./ProfileDropdown.css";
 
-export default function ProfileDropdown() {
+function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef();
   const buttonRef = useRef();
   const [dropdownStyle, setDropdownStyle] = useState({});
+  const navigate = useNavigate();
+
+  // Logout with Firebase
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      console.log("User signed out successfully.");
+      navigate("/login"); // Redirect to login page
+    } catch (error) {
+      console.error("Logout failed:", error.message);
+    }
+  };
 
   // Close dropdown on outside click or Escape
   useEffect(() => {
@@ -17,13 +32,13 @@ export default function ProfileDropdown() {
         !dropdownRef.current.contains(e.target) &&
         buttonRef.current &&
         !buttonRef.current.contains(e.target)
-      ) setIsOpen(false);
+      ) {
+        setIsOpen(false);
+      }
     };
-
     const handleEscape = (e) => {
       if (e.key === "Escape") setIsOpen(false);
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
     return () => {
@@ -32,40 +47,35 @@ export default function ProfileDropdown() {
     };
   }, []);
 
-  // Focus first link when opened
+  // Focus first item when open
   useEffect(() => {
     if (isOpen && dropdownRef.current) {
-      const firstLink = dropdownRef.current.querySelector("a");
-      firstLink?.focus();
+      const firstLink = dropdownRef.current.querySelector("a, button");
+      if (firstLink) firstLink.focus();
     }
   }, [isOpen]);
 
-  // Compute absolute position
+  // Positioning
   useEffect(() => {
     if (!isOpen) return;
-
     const updatePosition = () => {
       if (!buttonRef.current) return;
       const rect = buttonRef.current.getBoundingClientRect();
       const menuWidth = 220;
       const padding = 8;
-
       let left = rect.right - menuWidth;
       const maxLeft = window.innerWidth - menuWidth - 8;
       if (left > maxLeft) left = maxLeft;
       if (left < 8) left = 8;
-
       const top = rect.bottom + window.scrollY + padding;
-
       setDropdownStyle({
         position: "absolute",
         top: `${top}px`,
         left: `${left + window.scrollX}px`,
-        width: `${menuWidth}px`,
         zIndex: 10000,
+        width: 200,
       });
     };
-
     updatePosition();
     window.addEventListener("scroll", updatePosition, true);
     window.addEventListener("resize", updatePosition);
@@ -83,34 +93,54 @@ export default function ProfileDropdown() {
       aria-label="Profile options"
       style={dropdownStyle}
     >
+      <li><a href="#" tabIndex={0} role="menuitem">Home</a></li>
+      <li><a href="#" tabIndex={0} role="menuitem">Saved List</a></li>
+      <li><a href="#" tabIndex={0} role="menuitem">Share with Friends</a></li>
       <li>
-        <a href="#" role="menuitem">
-          Home
-        </a>
-      </li>
-      <li>
-        <a href="#" role="menuitem">
-          Saved List
-        </a>
-      </li>
-      <li>
-        <a href="#" role="menuitem">
-          Share with Friends
-        </a>
+        <button 
+          onClick={handleLogout} 
+          className="logout-btn" 
+          role="menuitem"
+        >
+          Logout
+        </button>
       </li>
     </ul>
   );
 
   return (
-    <div className="profile-dropdown-container">
-      <img src={ProfileImage} alt="Profile" className="profile-image" />
+    <div
+      className="profile-dropdown-container"
+      style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+    >
+      <img
+        src={Image}
+        alt="Profile"
+        className="profile-image"
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{ cursor: 'default' }}
+      />
+
       <button
-        ref={buttonRef}
-        className={`dropdown-arrow-btn ${isOpen ? "open" : ""}`}
+        className={`dropdown-arrow-btn${isOpen ? ' open' : ''}`}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        aria-label={isOpen ? "Close profile menu" : "Open profile menu"}
+        aria-label={isOpen ? 'Close profile menu' : 'Open profile menu'}
         onClick={() => setIsOpen((prev) => !prev)}
+        ref={buttonRef}
+        style={{
+          borderRadius: '50%',
+          height: '30px',
+          width: '30px',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          margin: 0,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+        }}
       >
         <svg
           width="22"
@@ -119,6 +149,10 @@ export default function ProfileDropdown() {
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="dropdown-arrow-icon"
+          style={{
+            transition: 'transform 0.2s',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
         >
           <path
             d="M6 8L10 12L14 8"
@@ -126,10 +160,6 @@ export default function ProfileDropdown() {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{
-              transition: "transform 0.25s",
-              transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-            }}
           />
         </svg>
       </button>
@@ -138,3 +168,5 @@ export default function ProfileDropdown() {
     </div>
   );
 }
+
+export default ProfileDropdown;
