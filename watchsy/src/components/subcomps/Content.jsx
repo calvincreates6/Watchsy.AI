@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Card from "./Card";
-import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers } from "../../api/tmdb";
+import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies } from "../../api/tmdb";
 import background from "../../assets/movie_bg.jpg";
 
 function Content({ searchQuery }) {
@@ -16,6 +16,10 @@ function Content({ searchQuery }) {
   const [providersLoading, setProvidersLoading] = useState(false);
   const [trailer, setTrailer] = useState(null); // YouTube trailer for selected movie
   const [trailerLoading, setTrailerLoading] = useState(false);
+  const [cast, setCast] = useState(null); // Cast details for selected movie
+  const [castLoading, setCastLoading] = useState(false);
+  const [similarMovies, setSimilarMovies] = useState([]); // Similar movies
+  const [similarLoading, setSimilarLoading] = useState(false);
 
   // Fetch genres
   useEffect(() => {
@@ -118,10 +122,12 @@ function Content({ searchQuery }) {
     setSelectedMovie(null); 
     setProviders(null); 
     setTrailer(null);
+    setCast(null);
+    setSimilarMovies([]);
   };
   const onSelectMovie = (movie) => setSelectedMovie(movie);
 
-  // Load watch providers and trailers when a movie is selected
+  // Load all movie data when a movie is selected
   useEffect(() => {
     const loadMovieData = async () => {
       if (!selectedMovie?.id) return;
@@ -149,6 +155,30 @@ function Content({ searchQuery }) {
         setTrailer(null);
       } finally {
         setTrailerLoading(false);
+      }
+
+      // Load cast
+      try {
+        setCastLoading(true);
+        const castData = await fetchCast(selectedMovie.id);
+        setCast(castData);
+      } catch (e) {
+        console.error('Failed to load cast', e);
+        setCast(null);
+      } finally {
+        setCastLoading(false);
+      }
+
+      // Load similar movies
+      try {
+        setSimilarLoading(true);
+        const similarData = await fetchSimilarMovies(selectedMovie.id);
+        setSimilarMovies(similarData);
+      } catch (e) {
+        console.error('Failed to load similar movies', e);
+        setSimilarMovies([]);
+      } finally {
+        setSimilarLoading(false);
       }
     };
     loadMovieData();
@@ -366,9 +396,9 @@ function Content({ searchQuery }) {
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  width: "min(1200px, 95vw)",
+                  width: "min(1400px, 95vw)",
                   maxHeight: "90vh",
-                  background: "rgba(35, 43, 59, 0.95)",
+                  background: "linear-gradient(135deg, rgba(35, 43, 59, 0.95) 0%, rgba(24, 28, 36, 0.95) 100%)",
                   backdropFilter: "blur(20px)",
                   color: "#e6edf6",
                   borderRadius: "24px",
@@ -424,7 +454,7 @@ function Content({ searchQuery }) {
                   {/* Media Section - Trailer or Poster */}
                   <div style={{ 
                     flexShrink: 0,
-                    width: window.innerWidth < 768 ? "100%" : "400px"
+                    width: window.innerWidth < 768 ? "100%" : "450px"
                   }}>
                     {trailerLoading ? (
                       <div style={{
@@ -483,7 +513,10 @@ function Content({ searchQuery }) {
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       backgroundClip: "text",
-                      lineHeight: "1.2"
+                      lineHeight: "1.2",
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontWeight: "700",
+                      letterSpacing: "-0.02em"
                     }}>
                       {selectedMovie.title}
                     </h2>
@@ -504,11 +537,16 @@ function Content({ searchQuery }) {
                         color: "#000",
                         fontWeight: "bold",
                         fontSize: "1rem",
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                        fontFamily: "'Inter', sans-serif"
                       }}>
                         ⭐ {selectedMovie.vote_average?.toFixed(1)}
                       </div>
-                      <span className="content-body" style={{ color: "#b8c5d6", fontSize: "1.1rem" }}>
+                      <span className="content-body" style={{ 
+                        color: "#b8c5d6", 
+                        fontSize: "1.1rem",
+                        fontFamily: "'Inter', sans-serif"
+                      }}>
                         📅 {selectedMovie.release_date?.split("-")[0] || "—"}
                       </span>
                     </div>
@@ -517,14 +555,16 @@ function Content({ searchQuery }) {
                       color: "#d1d8e0", 
                       lineHeight: "1.7", 
                       marginBottom: "24px",
-                      fontSize: "1.1rem"
+                      fontSize: "1.1rem",
+                      fontFamily: "'Inter', sans-serif",
+                      fontWeight: "400"
                     }}>
                       {selectedMovie.overview || "No overview available."}
                     </p>
                     
                     {selectedMovie.genre_ids?.length > 0 && (
                       <div style={{ marginBottom: "28px", display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                        {getGenreNames(selectedMovie.genre_ids).map((g) => (
+                        {getGenreNames(selectedMovie.genre_ids).map((g, index) => (
                           <span 
                             key={g} 
                             className="genre-tag"
@@ -535,7 +575,8 @@ function Content({ searchQuery }) {
                               padding: "6px 14px",
                               borderRadius: "18px",
                               fontSize: "0.9rem",
-                              fontWeight: "500"
+                              fontWeight: "500",
+                              animation: `fadeInUp 0.3s ease ${index * 0.1}s both`
                             }}
                           >
                             {g}
@@ -544,17 +585,86 @@ function Content({ searchQuery }) {
                       </div>
                     )}
 
+                    {/* Cast Section */}
+                    {cast && (
+                      <div style={{ marginBottom: "28px" }}>
+                        <h3 className="content-title" style={{ 
+                          fontSize: "1.3rem", 
+                          marginBottom: "12px",
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontWeight: "600"
+                        }}>🎭 Cast & Crew</h3>
+                        {castLoading ? (
+                          <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading cast...</div>
+                        ) : cast.cast?.length > 0 ? (
+                          <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
+                            {cast.cast.map((person, index) => (
+                              <div key={person.id} style={{
+                                flexShrink: 0,
+                                width: "80px",
+                                textAlign: "center",
+                                animation: `fadeInUp 0.3s ease ${index * 0.1}s both`
+                              }}>
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
+                                  alt={person.name}
+                                  style={{
+                                    width: "60px",
+                                    height: "60px",
+                                    borderRadius: "50%",
+                                    objectFit: "cover",
+                                    marginBottom: "6px",
+                                    border: "2px solid rgba(255, 217, 61, 0.3)"
+                                  }}
+                                />
+                                <div style={{ 
+                                  fontSize: "0.75rem", 
+                                  color: "#ffd93d", 
+                                  fontWeight: "600",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  {person.name}
+                                </div>
+                                <div style={{ 
+                                  fontSize: "0.7rem", 
+                                  color: "#b8c5d6",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  {person.character}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="content-body" style={{ 
+                            color: "#b8c5d6",
+                            fontFamily: "'Inter', sans-serif"
+                          }}>No cast information available.</div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Providers section */}
                     <div style={{ marginTop: "12px" }}>
-                      <h3 className="content-title" style={{ fontSize: "1.3rem", marginBottom: "12px" }}>📺 Where to watch</h3>
-                      {providersLoading ? (
-                        <div className="content-body">Loading providers...</div>
-                      ) : providers ? (
+                                              <h3 className="content-title" style={{ 
+                          fontSize: "1.3rem", 
+                          marginBottom: "12px",
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontWeight: "600"
+                        }}>📺 Where to watch</h3>
+                                              {providersLoading ? (
+                          <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading providers...</div>
+                        ) : providers ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                           {['flatrate', 'free', 'ads', 'rent', 'buy'].map((key) => (
                             providers[key]?.length ? (
                               <div key={key}>
-                                <div className="content-body" style={{ color: "#b8c5d6", marginBottom: "8px", fontWeight: "600" }}>
+                                <div className="content-body" style={{ 
+                                  color: "#b8c5d6", 
+                                  marginBottom: "8px", 
+                                  fontWeight: "600",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
                                   {key === 'flatrate' ? '🎬 Streaming' : 
                                    key === 'free' ? '🆓 Free' :
                                    key === 'ads' ? '📺 With Ads' :
@@ -581,7 +691,13 @@ function Content({ searchQuery }) {
                                       {p.logo_path ? (
                                         <img src={`https://image.tmdb.org/t/p/w92${p.logo_path}`} alt={p.provider_name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                                       ) : (
-                                        <span style={{ fontSize: "0.7rem", color: "#b8c5d6", padding: "4px", textAlign: "center" }}>{p.provider_name}</span>
+                                        <span style={{ 
+                                          fontSize: "0.7rem", 
+                                          color: "#b8c5d6", 
+                                          padding: "4px", 
+                                          textAlign: "center",
+                                          fontFamily: "'Inter', sans-serif"
+                                        }}>{p.provider_name}</span>
                                       )}
                                     </div>
                                   ))}
@@ -589,25 +705,147 @@ function Content({ searchQuery }) {
                               </div>
                             ) : null
                           ))}
-                          {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
-                            <div className="content-body" style={{ color: "#b8c5d6" }}>No providers available in your region.</div>
-                          )}
+                                                      {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
+                              <div className="content-body" style={{ 
+                                color: "#b8c5d6",
+                                fontFamily: "'Inter', sans-serif"
+                              }}>No providers available in your region.</div>
+                            )}
                         </div>
-                      ) : (
-                        <div className="content-body" style={{ color: "#b8c5d6" }}>No provider data available.</div>
-                      )}
+                                              ) : (
+                          <div className="content-body" style={{ 
+                            color: "#b8c5d6",
+                            fontFamily: "'Inter', sans-serif"
+                          }}>No provider data available.</div>
+                        )}
                     </div>
+
+                    {/* Similar Movies Section */}
+                    {similarMovies.length > 0 && (
+                      <div style={{ marginTop: "24px" }}>
+                        <h3 className="content-title" style={{ 
+                          fontSize: "1.3rem", 
+                          marginBottom: "12px",
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontWeight: "600"
+                        }}>🎬 You may also like</h3>
+                        {similarLoading ? (
+                          <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading recommendations...</div>
+                        ) : (
+                          <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
+                            {similarMovies.map((movie, index) => (
+                              <div key={movie.id} style={{
+                                flexShrink: 0,
+                                width: "120px",
+                                cursor: "pointer",
+                                animation: `fadeInUp 0.3s ease ${index * 0.1}s both`,
+                                transition: "transform 0.2s ease"
+                              }}
+                              onMouseEnter={(e) => e.target.style.transform = "scale(1.05)"}
+                              onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
+                              onClick={() => onSelectMovie(movie)}
+                              >
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
+                                  alt={movie.title}
+                                  style={{
+                                    width: "100%",
+                                    height: "180px",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                    marginBottom: "6px",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                                  }}
+                                />
+                                <div style={{ 
+                                  fontSize: "0.8rem", 
+                                  color: "#f5f6fa", 
+                                  fontWeight: "600", 
+                                  lineHeight: "1.2",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  {movie.title}
+                                </div>
+                                <div style={{ 
+                                  fontSize: "0.7rem", 
+                                  color: "#b8c5d6",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  ⭐ {movie.vote_average?.toFixed(1)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
                 <div style={{ 
                   display: "flex", 
-                  justifyContent: "flex-end", 
+                  justifyContent: "space-between", 
+                  alignItems: "center",
                   gap: "16px", 
                   padding: "0 32px 32px",
                   borderTop: "1px solid rgba(255, 217, 61, 0.1)",
                   paddingTop: "24px"
                 }}>
+                  {/* User Action Buttons */}
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <button 
+                      className="btn-secondary"
+                      style={{
+                        background: "rgba(255, 107, 107, 0.1)",
+                        color: "#ff6b6b",
+                        border: "1px solid rgba(255, 107, 107, 0.3)",
+                        padding: "10px 16px",
+                        borderRadius: "20px",
+                        fontWeight: "600",
+                        fontSize: "0.9rem",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        fontFamily: "'Inter', sans-serif"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = "rgba(255, 107, 107, 0.2)";
+                        e.target.style.transform = "translateY(-2px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = "rgba(255, 107, 107, 0.1)";
+                        e.target.style.transform = "translateY(0)";
+                      }}
+                    >
+                      ❤️ Like
+                    </button>
+                    <button 
+                      className="btn-secondary"
+                      style={{
+                        background: "rgba(34, 197, 94, 0.1)",
+                        color: "#22c55e",
+                        border: "1px solid rgba(34, 197, 94, 0.3)",
+                        padding: "10px 16px",
+                        borderRadius: "20px",
+                        fontWeight: "600",
+                        fontSize: "0.9rem",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        fontFamily: "'Inter', sans-serif"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = "rgba(34, 197, 94, 0.2)";
+                        e.target.style.transform = "translateY(-2px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = "rgba(34, 197, 94, 0.1)";
+                        e.target.style.transform = "translateY(0)";
+                      }}
+                    >
+                      ✅ Watched
+                    </button>
+                  </div>
+
+                  {/* Add to Watchlist Button */}
                   <button 
                     className="btn-primary" 
                     onClick={closeModal}
@@ -624,7 +862,8 @@ function Content({ searchQuery }) {
                       alignItems: "center",
                       gap: "10px",
                       transition: "all 0.2s ease",
-                      boxShadow: "0 6px 20px rgba(255, 217, 61, 0.3)"
+                      boxShadow: "0 6px 20px rgba(255, 217, 61, 0.3)",
+                      fontFamily: "'Inter', sans-serif"
                     }}
                     onMouseEnter={(e) => {
                       e.target.style.transform = "translateY(-3px)";
@@ -655,6 +894,48 @@ function Content({ searchQuery }) {
                       opacity: 1; 
                       transform: translateY(0) scale(1); 
                     }
+                  }
+                  @keyframes fadeInUp {
+                    from { 
+                      opacity: 0; 
+                      transform: translateY(20px); 
+                    }
+                    to { 
+                      opacity: 1; 
+                      transform: translateY(0); 
+                    }
+                  }
+                  
+                  /* Custom Scrollbar Styles */
+                  ::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                  }
+                  
+                  ::-webkit-scrollbar-track {
+                    background: rgba(24, 28, 36, 0.3);
+                    border-radius: 10px;
+                  }
+                  
+                  ::-webkit-scrollbar-thumb {
+                    background: linear-gradient(45deg, #ffd93d, #ffb347);
+                    border-radius: 10px;
+                    transition: all 0.3s ease;
+                  }
+                  
+                  ::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(45deg, #ffb347, #ffd93d);
+                    box-shadow: 0 2px 8px rgba(255, 217, 61, 0.3);
+                  }
+                  
+                  ::-webkit-scrollbar-corner {
+                    background: rgba(24, 28, 36, 0.3);
+                  }
+                  
+                  /* Firefox scrollbar */
+                  * {
+                    scrollbar-width: thin;
+                    scrollbar-color: #ffd93d rgba(24, 28, 36, 0.3);
                   }
                 `}
               </style>

@@ -1,17 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
 html, body, #root {
   background-color: #181c24;
 }
 
-body {
+* {
   margin: 0;
-  background-color: #181c24;
-  color: #232b3b;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background 0.3s, color 0.3s;
+  background-color: #181c24;
+  color: #232b3b;
+  line-height: 1.6;
+}
+
+/* Font hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-weight: 700;
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-weight: 600;
+  font-size: 2rem;
+}
+
+h3 {
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+/* Button and action text */
+button, .btn-primary, .btn-secondary {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Movie titles and special text */
+.movie-title, .content-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+}
+
+/* Body text and descriptions */
+p, .content-body, .movie-description {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  line-height: 1.7;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }
 
 input, textarea, select, button {
@@ -23,11 +77,6 @@ input, textarea, select, button {
 h1, h2, h3, h4, h5, h6, p, span, label, a {
   color: #f5f6fa;
   transition: color 0.3s;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
 }
 
 .dropdown-menu {

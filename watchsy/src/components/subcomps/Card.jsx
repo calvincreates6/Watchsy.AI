@@ -77,7 +77,7 @@ function Card(props) {
 
         <h2 className="movie-title">{props.title}</h2>
 
-        <hr className="divider-line" />
+        {/* <hr className="divider-line" /> */}
 
         <div className="info-section">
           <div className="info-row">

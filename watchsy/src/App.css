@@ -42,6 +42,7 @@ body {
   font-family: var(--font-body);
   font-weight: var(--weight-regular);
   line-height: 1.6;
+  background: linear-gradient(135deg, #0f131a 0%, #1a1f2e 100%);
 }
 
 h1, h2, h3, h4, h5, h6 {
