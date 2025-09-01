@@ -11,6 +11,7 @@ function Content({ searchQuery }) {
   const [heroLoading, setHeroLoading] = useState(true);
   const [cardOrder, setCardOrder] = useState([0, 1, 2]); // Track card order
   const [animatingCard, setAnimatingCard] = useState(null); // Track which card is animating
+  const [selectedMovie, setSelectedMovie] = useState(null); // Modal selection
 
   // Fetch genres
   useEffect(() => {
@@ -93,7 +94,9 @@ function Content({ searchQuery }) {
       setLoading(true);
       try {
         const results = await searchMovies(searchQuery);
-        setMovies(results);
+        // Filter out movies with 0 rating for cleaner results
+        const filtered = (results || []).filter(m => (m?.vote_average || 0) > 0);
+        setMovies(filtered);
       } catch (err) {
         console.error(err);
         setMovies([]);
@@ -106,6 +109,9 @@ function Content({ searchQuery }) {
 
   const getGenreNames = (genreIds) =>
     genreIds.map((id) => genres[id]).filter(Boolean);
+
+  const closeModal = () => setSelectedMovie(null);
+  const onSelectMovie = (movie) => setSelectedMovie(movie);
 
   // Hero Section
   const HeroSection = () => (
@@ -279,17 +285,79 @@ function Content({ searchQuery }) {
             <p style={styles.resultCount} className="content-body">{movies.length} movies found</p>
           </div>
           <div style={styles.movieGrid}>
-            {movies.map((movie) => (
-              <Card
-                key={movie.id}
-                title={movie.title}
-                poster={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                rating={movie.vote_average}
-                year={movie.release_date?.split("-")[0]}
-                genres={getGenreNames(movie.genre_ids || [])}
-              />
-            ))}
+            {movies.map((movie) => {
+              const posterUrl = movie.poster_path
+                ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
+              return (
+                <Card
+                  key={movie.id}
+                  id={movie.id}
+                  title={movie.title}
+                  poster={posterUrl}
+                  rating={movie.vote_average}
+                  year={movie.release_date?.split("-")[0]}
+                  genres={getGenreNames(movie.genre_ids || [])}
+                  onSelect={() => onSelectMovie(movie)}
+                />
+              );
+            })}
           </div>
+
+          {selectedMovie && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              onClick={closeModal}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10000,
+                padding: "20px",
+              }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: "min(900px, 95vw)",
+                  background: "#232b3b",
+                  color: "#e6edf6",
+                  borderRadius: "16px",
+                  boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                  border: "1px solid #39465c",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
+                  <img
+                    src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster"}
+                    alt={`${selectedMovie.title} poster`}
+                    style={{ width: "240px", height: "360px", objectFit: "cover", borderRadius: "12px" }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <h2 className="content-title" style={{ marginTop: 0 }}>{selectedMovie.title}</h2>
+                    <p className="content-body" style={{ margin: "8px 0" }}>⭐ {selectedMovie.vote_average?.toFixed(1)} • {selectedMovie.release_date?.split("-")[0] || "—"}</p>
+                    <p className="content-body" style={{ color: "#b8c5d6" }}>{selectedMovie.overview || "No overview available."}</p>
+                    {selectedMovie.genre_ids?.length > 0 && (
+                      <div style={{ marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {getGenreNames(selectedMovie.genre_ids).map((g) => (
+                          <span key={g} className="genre-tag">{g}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", padding: "0 20px 20px" }}>
+                  <button className="btn-secondary" onClick={closeModal}>Close</button>
+                  <button className="btn-primary" onClick={closeModal}>Add to Watchlist</button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div style={styles.noResults}>
@@ -357,7 +425,7 @@ const hero = {
     cursor: "pointer",
     border: "2px solid transparent",
     background: "linear-gradient(#181c24, #181c24) padding-box, linear-gradient(to bottom, #a8edea 0%, #fed6e3 100%) border-box",
-    color: "#e6edf6",
+    color: "e6edf6",
     transition: "all 0.3s ease",
   },
   features: { display: "flex", gap: "30px" },

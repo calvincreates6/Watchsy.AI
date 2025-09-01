@@ -2,6 +2,7 @@ import React from "react";
 import "./Card.css";
 
 function Card(props) {
+  let movieId = -1;
   let ratings = props.rating;
   ratings = ratings.toFixed(1);
 
@@ -16,33 +17,38 @@ function Card(props) {
       addedAt: new Date().toISOString()
     };
 
-    // Get existing watchlist
     const existingWatchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-    
-    // Check if movie already exists
     const movieExists = existingWatchlist.find(m => m.id === movie.id);
-    
     if (!movieExists) {
       const updatedWatchlist = [...existingWatchlist, movie];
       localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-      
-      // Show success message (you can replace this with a toast notification)
       alert(`${props.title} added to watchlist!`);
     } else {
       alert(`${props.title} is already in your watchlist!`);
     }
   };
 
+  // Use provided onSelect to notify parent which card was clicked
+  const handleClick = () => {
+    if (props.onSelect) props.onSelect();
+  };
+
+  // Safe image error handler to avoid infinite onError loop/flicker
+  const onPosterError = (e) => {
+    const img = e.target;
+    if (img.dataset.fallbackApplied === "true") return; // already swapped
+    img.dataset.fallbackApplied = "true";
+    img.src = "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
+  };
+
   return (
-    <div className="movie-card">
-      <div className="content-wrapper">
+    <div className="movie-card" id={props.id} onClick={handleClick}>
+      <div className="content-wrapper" >
         <img 
           src={props.poster} 
-          alt="Movie Poster" 
+          alt={`${props.title} poster`} 
           className="movie-poster"
-          onError={(e) => {
-            e.target.src = "https://via.placeholder.com/150x200/666666/ffffff?text=No+Image";
-          }}
+          onError={onPosterError}
         />
 
         <h2 className="movie-title">{props.title}</h2>
@@ -60,12 +66,13 @@ function Card(props) {
             </div>
           </div>
 
+{/* 
           <div className="info-row">
             <span className="info-label">Release Year:</span>
             <span className="detail-text">{props.year}</span>
-          </div>
+          </div> */}
 
-          <div className="info-row">
+          {/* <div className="info-row">
             <span className="info-label">Genres:</span>
             <div className="genre-list">
               {props.genres.map((genre, idx) => (
@@ -74,18 +81,25 @@ function Card(props) {
                 </span>
               ))}
             </div>
-          </div>
+          </div> */}
         </div>
 
         <hr className="divider-line" />
 
         <div className="action-buttons">
-          <button className="btn-primary" onClick={() => addToWatchlist()}>⏰ Watch Later</button>
-          <button className="btn-secondary">❤️ Liked</button>
-          <button className="btn-secondary">🔁 Rewatch</button>
+          <button className="btn-primary" onClick={(e) => { e.stopPropagation(); addToWatchlist(); }}>⏰ Watch Later</button>
+          <button className="btn-secondary" onClick={(e) => e.stopPropagation()}>❤️ Liked</button>
+          <button className="btn-secondary" onClick={(e) => e.stopPropagation()}>🔁 Rewatch</button>
         </div>
+
+        <hr className="divider-line" />
+
+        <div className="info-row">
+          <span className="information">Click to see more info!</span>
+            </div>
       </div>
     </div>
+
   );
 }
 
