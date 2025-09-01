@@ -93,8 +93,9 @@ function ProfileDropdown() {
       aria-label="Profile options"
       style={dropdownStyle}
     >
-      <li><a href="#" tabIndex={0} role="menuitem">Home</a></li>
-      <li><a href="#" tabIndex={0} role="menuitem">Saved List</a></li>
+      <li><a href="/" tabIndex={0} role="menuitem">Home</a></li>
+      <li><a href="/watchlist" tabIndex={0} role="menuitem">Watchlist</a></li>
+      <li><a href="/likedlist" tabIndex={0} role="menuitem">Liked Movies</a></li>
       <li><a href="#" tabIndex={0} role="menuitem">Share with Friends</a></li>
       <li>
         <button 

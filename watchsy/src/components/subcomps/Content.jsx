@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Card from "./Card";
-import { searchMovies, fetchGenres, fetchPopularTopMovies } from "../../api/tmdb";
+import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies } from "../../api/tmdb";
 import background from "../../assets/movie_bg.jpg";
 
 function Content({ searchQuery }) {
@@ -11,6 +11,15 @@ function Content({ searchQuery }) {
   const [heroLoading, setHeroLoading] = useState(true);
   const [cardOrder, setCardOrder] = useState([0, 1, 2]); // Track card order
   const [animatingCard, setAnimatingCard] = useState(null); // Track which card is animating
+  const [selectedMovie, setSelectedMovie] = useState(null); // Modal selection
+  const [providers, setProviders] = useState(null); // Watch providers for selected movie
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [trailer, setTrailer] = useState(null); // YouTube trailer for selected movie
+  const [trailerLoading, setTrailerLoading] = useState(false);
+  const [cast, setCast] = useState(null); // Cast details for selected movie
+  const [castLoading, setCastLoading] = useState(false);
+  const [similarMovies, setSimilarMovies] = useState([]); // Similar movies
+  const [similarLoading, setSimilarLoading] = useState(false);
 
   // Fetch genres
   useEffect(() => {
@@ -93,7 +102,9 @@ function Content({ searchQuery }) {
       setLoading(true);
       try {
         const results = await searchMovies(searchQuery);
-        setMovies(results);
+        // Filter out movies with 0 rating for cleaner results
+        const filtered = (results || []).filter(m => (m?.vote_average || 0) > 0);
+        setMovies(filtered);
       } catch (err) {
         console.error(err);
         setMovies([]);
@@ -106,6 +117,72 @@ function Content({ searchQuery }) {
 
   const getGenreNames = (genreIds) =>
     genreIds.map((id) => genres[id]).filter(Boolean);
+
+  const closeModal = () => { 
+    setSelectedMovie(null); 
+    setProviders(null); 
+    setTrailer(null);
+    setCast(null);
+    setSimilarMovies([]);
+  };
+  const onSelectMovie = (movie) => setSelectedMovie(movie);
+
+  // Load all movie data when a movie is selected
+  useEffect(() => {
+    const loadMovieData = async () => {
+      if (!selectedMovie?.id) return;
+      
+      // Load providers
+      try {
+        setProvidersLoading(true);
+        const region = Intl.DateTimeFormat().resolvedOptions().timeZone ? (navigator.language?.split('-')[1] || 'US') : 'US';
+        const data = await fetchWatchProviders(selectedMovie.id, region.toUpperCase());
+        setProviders(data);
+      } catch (e) {
+        console.error('Failed to load watch providers', e);
+        setProviders(null);
+      } finally {
+        setProvidersLoading(false);
+      }
+
+      // Load trailers
+      try {
+        setTrailerLoading(true);
+        const trailerData = await fetchTrailers(selectedMovie.id);
+        setTrailer(trailerData);
+      } catch (e) {
+        console.error('Failed to load trailers', e);
+        setTrailer(null);
+      } finally {
+        setTrailerLoading(false);
+      }
+
+      // Load cast
+      try {
+        setCastLoading(true);
+        const castData = await fetchCast(selectedMovie.id);
+        setCast(castData);
+      } catch (e) {
+        console.error('Failed to load cast', e);
+        setCast(null);
+      } finally {
+        setCastLoading(false);
+      }
+
+      // Load similar movies
+      try {
+        setSimilarLoading(true);
+        const similarData = await fetchSimilarMovies(selectedMovie.id);
+        setSimilarMovies(similarData);
+      } catch (e) {
+        console.error('Failed to load similar movies', e);
+        setSimilarMovies([]);
+      } finally {
+        setSimilarLoading(false);
+      }
+    };
+    loadMovieData();
+  }, [selectedMovie]);
 
   // Hero Section
   const HeroSection = () => (
@@ -198,6 +275,8 @@ function Content({ searchQuery }) {
                     className="hero-movie-card"
                     data-card-index={displayIndex}
                     onClick={() => handleCardClick(displayIndex)}
+                    onMouseEnter={(e) => e.target.style.boxShadow = "0 15px 35px rgba(0, 255, 255, 0.3)"}
+                    onMouseLeave={(e) => e.target.style.boxShadow = "0 10px 30px rgba(0,0,0,0.3)"}
                     style={{
                       ...hero.movieCard,
                       transform: `rotate(${rotation}deg)`,
@@ -277,17 +356,591 @@ function Content({ searchQuery }) {
             <p style={styles.resultCount} className="content-body">{movies.length} movies found</p>
           </div>
           <div style={styles.movieGrid}>
-            {movies.map((movie) => (
-              <Card
-                key={movie.id}
-                title={movie.title}
-                poster={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                rating={movie.vote_average}
-                year={movie.release_date?.split("-")[0]}
-                genres={getGenreNames(movie.genre_ids || [])}
-              />
-            ))}
+            {movies.map((movie) => {
+              const posterUrl = movie.poster_path
+                ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
+              return (
+                <Card
+                  key={movie.id}
+                  id={movie.id}
+                  title={movie.title}
+                  poster={posterUrl}
+                  rating={movie.vote_average}
+                  year={movie.release_date?.split("-")[0]}
+                  genres={getGenreNames(movie.genre_ids || [])}
+                  onSelect={() => onSelectMovie(movie)}
+                />
+              );
+            })}
           </div>
+
+          {selectedMovie && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              onClick={closeModal}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url(${selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w1280${selectedMovie.poster_path}` : ''}) center/cover`,
+                backdropFilter: "blur(8px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10000,
+                padding: "20px",
+                animation: "modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width: "min(1400px, 95vw)",
+                  maxHeight: "90vh",
+                  background: "linear-gradient(135deg, rgba(35, 43, 59, 0.95) 0%, rgba(24, 28, 36, 0.95) 100%)",
+                  backdropFilter: "blur(20px)",
+                  color: "#e6edf6",
+                  borderRadius: "24px",
+                  boxShadow: "0 25px 80px rgba(0,0,0,0.6)",
+                  border: "1px solid rgba(255, 217, 61, 0.2)",
+                  overflow: "hidden",
+                  position: "relative",
+                  animation: "modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+              >
+                {/* Close Button */}
+                <button
+                  onClick={closeModal}
+                  style={{
+                    position: "absolute",
+                    top: "20px",
+                    right: "20px",
+                    background: "rgba(0,0,0,0.6)",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "#f5f6fa",
+                    fontSize: "20px",
+                    transition: "all 0.2s ease",
+                    zIndex: 10,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "rgba(255,75,75,0.8)";
+                    e.target.style.transform = "scale(1.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "rgba(0,0,0,0.6)";
+                    e.target.style.transform = "scale(1)";
+                  }}
+                >
+                  ✕
+                </button>
+
+                <div style={{ 
+                  display: "flex", 
+                  gap: "32px", 
+                  padding: "32px",
+                  flexDirection: window.innerWidth < 768 ? "column" : "row",
+                  alignItems: window.innerWidth < 768 ? "center" : "flex-start",
+                  overflow: "auto",
+                  maxHeight: "calc(90vh - 100px)"
+                }}>
+                  {/* Media Section - Trailer or Poster */}
+                  <div style={{ 
+                    flexShrink: 0,
+                    width: window.innerWidth < 768 ? "100%" : "450px"
+                  }}>
+                    {trailerLoading ? (
+                      <div style={{
+                        width: "100%",
+                        height: window.innerWidth < 768 ? "225px" : "300px",
+                        background: "#1a1c24",
+                        borderRadius: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#b8c5d6"
+                      }}>
+                        Loading trailer...
+                      </div>
+                    ) : trailer ? (
+                      <div style={{ position: "relative", width: "100%", paddingBottom: "56.25%", borderRadius: "16px", overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.4)" }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${trailer.key}?autoplay=0&rel=0&modestbranding=1`}
+                          title={`${selectedMovie.title} Trailer`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            borderRadius: "16px"
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <img
+                        src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster"}
+                        alt={`${selectedMovie.title} poster`}
+                        style={{ 
+                          width: "100%", 
+                          height: "auto",
+                          maxHeight: window.innerWidth < 768 ? "400px" : "500px",
+                          objectFit: "cover", 
+                          borderRadius: "16px",
+                          boxShadow: "0 12px 40px rgba(0,0,0,0.4)"
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Content Section */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 className="content-title" style={{ 
+                      marginTop: 0, 
+                      fontSize: "2.4rem", 
+                      marginBottom: "20px",
+                      background: "linear-gradient(45deg, #ffd93d, #ff6b6b)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                      lineHeight: "1.2",
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontWeight: "700",
+                      letterSpacing: "-0.02em"
+                    }}>
+                      {selectedMovie.title}
+                    </h2>
+                    
+                    {/* Rating Badge */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
+                      <div style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 16px",
+                        borderRadius: "25px",
+                        background: selectedMovie.vote_average >= 7.5 ? 
+                          "linear-gradient(45deg, #ffd93d, #ffb347)" : 
+                          selectedMovie.vote_average >= 6.0 ? 
+                          "linear-gradient(45deg, #74b9ff, #0984e3)" :
+                          "linear-gradient(45deg, #fd79a8, #e84393)",
+                        color: "#000",
+                        fontWeight: "bold",
+                        fontSize: "1rem",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                        fontFamily: "'Inter', sans-serif"
+                      }}>
+                        ⭐ {selectedMovie.vote_average?.toFixed(1)}
+                      </div>
+                      <span className="content-body" style={{ 
+                        color: "#b8c5d6", 
+                        fontSize: "1.1rem",
+                        fontFamily: "'Inter', sans-serif"
+                      }}>
+                        📅 {selectedMovie.release_date?.split("-")[0] || "—"}
+                      </span>
+                    </div>
+
+                    <p className="content-body" style={{ 
+                      color: "#d1d8e0", 
+                      lineHeight: "1.7", 
+                      marginBottom: "24px",
+                      fontSize: "1.1rem",
+                      fontFamily: "'Inter', sans-serif",
+                      fontWeight: "400"
+                    }}>
+                      {selectedMovie.overview || "No overview available."}
+                    </p>
+                    
+                    {selectedMovie.genre_ids?.length > 0 && (
+                      <div style={{ marginBottom: "28px", display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                        {getGenreNames(selectedMovie.genre_ids).map((g, index) => (
+                          <span 
+                            key={g} 
+                            className="genre-tag"
+                            style={{
+                              background: "rgba(255, 217, 61, 0.1)",
+                              color: "#ffd93d",
+                              border: "1px solid rgba(255, 217, 61, 0.3)",
+                              padding: "6px 14px",
+                              borderRadius: "18px",
+                              fontSize: "0.9rem",
+                              fontWeight: "500",
+                              animation: `fadeInUp 0.3s ease ${index * 0.1}s both`
+                            }}
+                          >
+                            {g}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Cast Section */}
+                    {cast && (
+                      <div style={{ marginBottom: "28px" }}>
+                        <h3 className="content-title" style={{ 
+                          fontSize: "1.3rem", 
+                          marginBottom: "12px",
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontWeight: "600"
+                        }}>🎭 Cast & Crew</h3>
+                        {castLoading ? (
+                          <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading cast...</div>
+                        ) : cast.cast?.length > 0 ? (
+                          <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
+                            {cast.cast.map((person, index) => (
+                              <div key={person.id} style={{
+                                flexShrink: 0,
+                                width: "80px",
+                                textAlign: "center",
+                                animation: `fadeInUp 0.3s ease ${index * 0.1}s both`
+                              }}>
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
+                                  alt={person.name}
+                                  style={{
+                                    width: "60px",
+                                    height: "60px",
+                                    borderRadius: "50%",
+                                    objectFit: "cover",
+                                    marginBottom: "6px",
+                                    border: "2px solid rgba(255, 217, 61, 0.3)"
+                                  }}
+                                />
+                                <div style={{ 
+                                  fontSize: "0.75rem", 
+                                  color: "#ffd93d", 
+                                  fontWeight: "600",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  {person.name}
+                                </div>
+                                <div style={{ 
+                                  fontSize: "0.7rem", 
+                                  color: "#b8c5d6",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  {person.character}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="content-body" style={{ 
+                            color: "#b8c5d6",
+                            fontFamily: "'Inter', sans-serif"
+                          }}>No cast information available.</div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Providers section */}
+                    <div style={{ marginTop: "12px" }}>
+                                              <h3 className="content-title" style={{ 
+                          fontSize: "1.3rem", 
+                          marginBottom: "12px",
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontWeight: "600"
+                        }}>📺 Where to watch</h3>
+                                              {providersLoading ? (
+                          <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading providers...</div>
+                        ) : providers ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                          {['flatrate', 'free', 'ads', 'rent', 'buy'].map((key) => (
+                            providers[key]?.length ? (
+                              <div key={key}>
+                                <div className="content-body" style={{ 
+                                  color: "#b8c5d6", 
+                                  marginBottom: "8px", 
+                                  fontWeight: "600",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  {key === 'flatrate' ? '🎬 Streaming' : 
+                                   key === 'free' ? '🆓 Free' :
+                                   key === 'ads' ? '📺 With Ads' :
+                                   key === 'rent' ? '💰 Rent' : '🛒 Buy'}
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                                  {providers[key].map((p) => (
+                                    <div key={p.provider_id} title={p.provider_name} style={{ 
+                                      width: "44px", 
+                                      height: "44px", 
+                                      borderRadius: "10px", 
+                                      overflow: "hidden", 
+                                      background: "#0f131a", 
+                                      display: "flex", 
+                                      alignItems: "center", 
+                                      justifyContent: "center", 
+                                      border: "1px solid rgba(255,255,255,0.15)",
+                                      transition: "transform 0.2s ease",
+                                      cursor: "pointer"
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.transform = "scale(1.1)"}
+                                    onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
+                                    >
+                                      {p.logo_path ? (
+                                        <img src={`https://image.tmdb.org/t/p/w92${p.logo_path}`} alt={p.provider_name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                                      ) : (
+                                        <span style={{ 
+                                          fontSize: "0.7rem", 
+                                          color: "#b8c5d6", 
+                                          padding: "4px", 
+                                          textAlign: "center",
+                                          fontFamily: "'Inter', sans-serif"
+                                        }}>{p.provider_name}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null
+                          ))}
+                                                      {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
+                              <div className="content-body" style={{ 
+                                color: "#b8c5d6",
+                                fontFamily: "'Inter', sans-serif"
+                              }}>No providers available in your region.</div>
+                            )}
+                        </div>
+                                              ) : (
+                          <div className="content-body" style={{ 
+                            color: "#b8c5d6",
+                            fontFamily: "'Inter', sans-serif"
+                          }}>No provider data available.</div>
+                        )}
+                    </div>
+
+                    {/* Similar Movies Section */}
+                    {similarMovies.length > 0 && (
+                      <div style={{ marginTop: "24px" }}>
+                        <h3 className="content-title" style={{ 
+                          fontSize: "1.3rem", 
+                          marginBottom: "12px",
+                          fontFamily: "'Montserrat', sans-serif",
+                          fontWeight: "600"
+                        }}>🎬 You may also like</h3>
+                        {similarLoading ? (
+                          <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading recommendations...</div>
+                        ) : (
+                          <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
+                            {similarMovies.map((movie, index) => (
+                              <div key={movie.id} style={{
+                                flexShrink: 0,
+                                width: "120px",
+                                cursor: "pointer",
+                                animation: `fadeInUp 0.3s ease ${index * 0.1}s both`,
+                                transition: "transform 0.2s ease"
+                              }}
+                              onMouseEnter={(e) => e.target.style.transform = "scale(1.05)"}
+                              onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
+                              onClick={() => onSelectMovie(movie)}
+                              >
+                                <img
+                                  src={`https://image.tmdb.org/t/p/w200${movie.poster_path}`}
+                                  alt={movie.title}
+                                  style={{
+                                    width: "100%",
+                                    height: "180px",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                    marginBottom: "6px",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+                                  }}
+                                />
+                                <div style={{ 
+                                  fontSize: "0.8rem", 
+                                  color: "#f5f6fa", 
+                                  fontWeight: "600", 
+                                  lineHeight: "1.2",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  {movie.title}
+                                </div>
+                                <div style={{ 
+                                  fontSize: "0.7rem", 
+                                  color: "#b8c5d6",
+                                  fontFamily: "'Inter', sans-serif"
+                                }}>
+                                  ⭐ {movie.vote_average?.toFixed(1)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center",
+                  gap: "16px", 
+                  padding: "0 32px 32px",
+                  borderTop: "1px solid rgba(255, 217, 61, 0.1)",
+                  paddingTop: "24px"
+                }}>
+                  {/* User Action Buttons */}
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <button 
+                      className="btn-secondary"
+                      style={{
+                        background: "rgba(255, 107, 107, 0.1)",
+                        color: "#ff6b6b",
+                        border: "1px solid rgba(255, 107, 107, 0.3)",
+                        padding: "10px 16px",
+                        borderRadius: "20px",
+                        fontWeight: "600",
+                        fontSize: "0.9rem",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        fontFamily: "'Inter', sans-serif"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = "rgba(255, 107, 107, 0.2)";
+                        e.target.style.transform = "translateY(-2px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = "rgba(255, 107, 107, 0.1)";
+                        e.target.style.transform = "translateY(0)";
+                      }}
+                    >
+                      ❤️ Like
+                    </button>
+                    <button 
+                      className="btn-secondary"
+                      style={{
+                        background: "rgba(34, 197, 94, 0.1)",
+                        color: "#22c55e",
+                        border: "1px solid rgba(34, 197, 94, 0.3)",
+                        padding: "10px 16px",
+                        borderRadius: "20px",
+                        fontWeight: "600",
+                        fontSize: "0.9rem",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        fontFamily: "'Inter', sans-serif"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = "rgba(34, 197, 94, 0.2)";
+                        e.target.style.transform = "translateY(-2px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = "rgba(34, 197, 94, 0.1)";
+                        e.target.style.transform = "translateY(0)";
+                      }}
+                    >
+                      ✅ Watched
+                    </button>
+                  </div>
+
+                  {/* Add to Watchlist Button */}
+                  <button 
+                    className="btn-primary" 
+                    onClick={closeModal}
+                    style={{
+                      background: "linear-gradient(45deg, #ffd93d, #ffb347)",
+                      color: "#000",
+                      border: "none",
+                      padding: "14px 28px",
+                      borderRadius: "30px",
+                      fontWeight: "bold",
+                      fontSize: "1.1rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 6px 20px rgba(255, 217, 61, 0.3)",
+                      fontFamily: "'Inter', sans-serif"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = "translateY(-3px)";
+                      e.target.style.boxShadow = "0 10px 30px rgba(255, 217, 61, 0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "0 6px 20px rgba(255, 217, 61, 0.3)";
+                    }}
+                  >
+                    ➕ Add to Watchlist
+                  </button>
+                </div>
+              </div>
+
+              <style>
+                {`
+                  @keyframes modalFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                  }
+                  @keyframes modalSlideUp {
+                    from { 
+                      opacity: 0; 
+                      transform: translateY(30px) scale(0.95); 
+                    }
+                    to { 
+                      opacity: 1; 
+                      transform: translateY(0) scale(1); 
+                    }
+                  }
+                  @keyframes fadeInUp {
+                    from { 
+                      opacity: 0; 
+                      transform: translateY(20px); 
+                    }
+                    to { 
+                      opacity: 1; 
+                      transform: translateY(0); 
+                    }
+                  }
+                  
+                  /* Custom Scrollbar Styles */
+                  ::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                  }
+                  
+                  ::-webkit-scrollbar-track {
+                    background: rgba(24, 28, 36, 0.3);
+                    border-radius: 10px;
+                  }
+                  
+                  ::-webkit-scrollbar-thumb {
+                    background: linear-gradient(45deg, #ffd93d, #ffb347);
+                    border-radius: 10px;
+                    transition: all 0.3s ease;
+                  }
+                  
+                  ::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(45deg, #ffb347, #ffd93d);
+                    box-shadow: 0 2px 8px rgba(255, 217, 61, 0.3);
+                  }
+                  
+                  ::-webkit-scrollbar-corner {
+                    background: rgba(24, 28, 36, 0.3);
+                  }
+                  
+                  /* Firefox scrollbar */
+                  * {
+                    scrollbar-width: thin;
+                    scrollbar-color: #ffd93d rgba(24, 28, 36, 0.3);
+                  }
+                `}
+              </style>
+            </div>
+          )}
         </>
       ) : (
         <div style={styles.noResults}>
@@ -355,7 +1008,7 @@ const hero = {
     cursor: "pointer",
     border: "2px solid transparent",
     background: "linear-gradient(#181c24, #181c24) padding-box, linear-gradient(to bottom, #a8edea 0%, #fed6e3 100%) border-box",
-    color: "#e6edf6",
+    color: "e6edf6",
     transition: "all 0.3s ease",
   },
   features: { display: "flex", gap: "30px" },
@@ -417,13 +1070,15 @@ const hero = {
     backdropFilter: "blur(4px)",
   },
   movieTitle: {
+    height: "20px",
+    width: "100%",
     position: "absolute",
-    bottom: "10px",
+    bottom: "-6px",
     left: "10px",
     right: "10px",
     background: "rgba(0,0,0,0.9)",
     color: "#e6edf6",
-    padding: "6px 8px",
+    // padding: "6px 8px",
     borderRadius: "12px",
     fontSize: "0.75rem",
     fontWeight: "bold",

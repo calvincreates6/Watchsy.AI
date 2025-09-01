@@ -179,7 +179,7 @@ function Header({ onSearch, transparent = false }) {
               }}
             />
             <button
-            className="search-button btn-primary"
+            className="search-button"
               type="submit"
             >
               Search

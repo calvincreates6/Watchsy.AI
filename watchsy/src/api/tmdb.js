@@ -16,6 +16,103 @@ export async function fetchGenres() {
     return data.genres; // [{ id: 28, name: 'Action' }, ...]
   }
 
+// Fetch watch providers for a movie by TMDB ID
+export async function fetchWatchProviders(movieId, region = 'US') {
+  const res = await fetch(`${BASE_URL}/movie/${movieId}/watch/providers?api_key=${API_KEY}`);
+  if (!res.ok) throw new Error('Failed to fetch watch providers');
+  const data = await res.json();
+  const results = data.results || {};
+  // Return region-specific providers or an empty object
+  return results[region] || {};
+}
+
+// Fetch YouTube trailers for a movie by TMDB ID
+export async function fetchTrailers(movieId) {
+  try {
+    const res = await fetch(`${BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}`);
+    if (!res.ok) throw new Error('Failed to fetch trailers');
+    const data = await res.json();
+    
+    // Filter for YouTube trailers, prioritize official ones
+    const trailers = data.results.filter(v => 
+      v.site === 'YouTube' && 
+      v.type === 'Trailer'
+    );
+    
+    // Sort by official first, then by name containing "Official"
+    trailers.sort((a, b) => {
+      if (a.official && !b.official) return -1;
+      if (!a.official && b.official) return 1;
+      if (a.name.toLowerCase().includes('official') && !b.name.toLowerCase().includes('official')) return -1;
+      if (!a.name.toLowerCase().includes('official') && b.name.toLowerCase().includes('official')) return 1;
+      return 0;
+    });
+    
+    return trailers[0] || null; // Return best trailer or null
+  } catch (error) {
+    console.error('Error fetching trailers:', error);
+    return null;
+  }
+}
+
+// Fetch cast and crew for a movie by TMDB ID
+export async function fetchCast(movieId) {
+  try {
+    const res = await fetch(`${BASE_URL}/movie/${movieId}/credits?api_key=${API_KEY}`);
+    if (!res.ok) throw new Error('Failed to fetch cast');
+    const data = await res.json();
+    
+    // Get top 6 cast members (main actors)
+    const topCast = data.cast
+      .filter(person => person.profile_path) // Only those with photos
+      .slice(0, 6)
+      .map(person => ({
+        id: person.id,
+        name: person.name,
+        character: person.character,
+        profile_path: person.profile_path,
+        order: person.order
+      }));
+    
+    // Get director and key crew
+    const director = data.crew.find(person => person.job === 'Director');
+    const producer = data.crew.find(person => person.job === 'Producer');
+    
+    return {
+      cast: topCast,
+      director: director ? { name: director.name, profile_path: director.profile_path } : null,
+      producer: producer ? { name: producer.name, profile_path: producer.profile_path } : null
+    };
+  } catch (error) {
+    console.error('Error fetching cast:', error);
+    return { cast: [], director: null, producer: null };
+  }
+}
+
+// Fetch similar movies for recommendations
+export async function fetchSimilarMovies(movieId) {
+  try {
+    const res = await fetch(`${BASE_URL}/movie/${movieId}/similar?api_key=${API_KEY}&page=1`);
+    if (!res.ok) throw new Error('Failed to fetch similar movies');
+    const data = await res.json();
+    
+    // Return top 3 similar movies with posters
+    return data.results
+      .filter(movie => movie.poster_path && movie.vote_average > 0)
+      .slice(0, 3)
+      .map(movie => ({
+        id: movie.id,
+        title: movie.title,
+        poster_path: movie.poster_path,
+        vote_average: movie.vote_average,
+        release_date: movie.release_date
+      }));
+  } catch (error) {
+    console.error('Error fetching similar movies:', error);
+    return [];
+  }
+}
+
 export async function fetchTopMovies2025() {
   try {
     // First, try to get well-known movies from 2025 with rating >= 7.5 and significant vote count
