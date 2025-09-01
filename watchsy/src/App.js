@@ -6,6 +6,7 @@ import Login from "./components/Login";
 import Homepage from "./components/HomePage";
 import Profile from "./components/Profile";
 import Watchlist from "./components/Watchlist";
+import LikedList from "./components/LikedList";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 // Protected Route Component
@@ -98,6 +99,11 @@ function App() {
         <Route path="/watchlist" element={
           <ProtectedRoute>
             <Watchlist />
+          </ProtectedRoute>
+        } />
+        <Route path="/likedlist" element={
+          <ProtectedRoute>
+            <LikedList />
           </ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />

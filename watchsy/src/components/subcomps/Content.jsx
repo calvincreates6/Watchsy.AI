@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Card from "./Card";
-import { searchMovies, fetchGenres, fetchPopularTopMovies } from "../../api/tmdb";
+import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers } from "../../api/tmdb";
 import background from "../../assets/movie_bg.jpg";
 
 function Content({ searchQuery }) {
@@ -12,6 +12,10 @@ function Content({ searchQuery }) {
   const [cardOrder, setCardOrder] = useState([0, 1, 2]); // Track card order
   const [animatingCard, setAnimatingCard] = useState(null); // Track which card is animating
   const [selectedMovie, setSelectedMovie] = useState(null); // Modal selection
+  const [providers, setProviders] = useState(null); // Watch providers for selected movie
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [trailer, setTrailer] = useState(null); // YouTube trailer for selected movie
+  const [trailerLoading, setTrailerLoading] = useState(false);
 
   // Fetch genres
   useEffect(() => {
@@ -110,8 +114,45 @@ function Content({ searchQuery }) {
   const getGenreNames = (genreIds) =>
     genreIds.map((id) => genres[id]).filter(Boolean);
 
-  const closeModal = () => setSelectedMovie(null);
+  const closeModal = () => { 
+    setSelectedMovie(null); 
+    setProviders(null); 
+    setTrailer(null);
+  };
   const onSelectMovie = (movie) => setSelectedMovie(movie);
+
+  // Load watch providers and trailers when a movie is selected
+  useEffect(() => {
+    const loadMovieData = async () => {
+      if (!selectedMovie?.id) return;
+      
+      // Load providers
+      try {
+        setProvidersLoading(true);
+        const region = Intl.DateTimeFormat().resolvedOptions().timeZone ? (navigator.language?.split('-')[1] || 'US') : 'US';
+        const data = await fetchWatchProviders(selectedMovie.id, region.toUpperCase());
+        setProviders(data);
+      } catch (e) {
+        console.error('Failed to load watch providers', e);
+        setProviders(null);
+      } finally {
+        setProvidersLoading(false);
+      }
+
+      // Load trailers
+      try {
+        setTrailerLoading(true);
+        const trailerData = await fetchTrailers(selectedMovie.id);
+        setTrailer(trailerData);
+      } catch (e) {
+        console.error('Failed to load trailers', e);
+        setTrailer(null);
+      } finally {
+        setTrailerLoading(false);
+      }
+    };
+    loadMovieData();
+  }, [selectedMovie]);
 
   // Hero Section
   const HeroSection = () => (
@@ -312,50 +353,311 @@ function Content({ searchQuery }) {
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "rgba(0,0,0,0.6)",
+                background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.8)), url(${selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w1280${selectedMovie.poster_path}` : ''}) center/cover`,
+                backdropFilter: "blur(8px)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 zIndex: 10000,
                 padding: "20px",
+                animation: "modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
               <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                  width: "min(900px, 95vw)",
-                  background: "#232b3b",
+                  width: "min(1200px, 95vw)",
+                  maxHeight: "90vh",
+                  background: "rgba(35, 43, 59, 0.95)",
+                  backdropFilter: "blur(20px)",
                   color: "#e6edf6",
-                  borderRadius: "16px",
-                  boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-                  border: "1px solid #39465c",
+                  borderRadius: "24px",
+                  boxShadow: "0 25px 80px rgba(0,0,0,0.6)",
+                  border: "1px solid rgba(255, 217, 61, 0.2)",
                   overflow: "hidden",
+                  position: "relative",
+                  animation: "modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                <div style={{ display: "flex", gap: "20px", padding: "20px" }}>
-                  <img
-                    src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster"}
-                    alt={`${selectedMovie.title} poster`}
-                    style={{ width: "240px", height: "360px", objectFit: "cover", borderRadius: "12px" }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <h2 className="content-title" style={{ marginTop: 0 }}>{selectedMovie.title}</h2>
-                    <p className="content-body" style={{ margin: "8px 0" }}>⭐ {selectedMovie.vote_average?.toFixed(1)} • {selectedMovie.release_date?.split("-")[0] || "—"}</p>
-                    <p className="content-body" style={{ color: "#b8c5d6" }}>{selectedMovie.overview || "No overview available."}</p>
+                {/* Close Button */}
+                <button
+                  onClick={closeModal}
+                  style={{
+                    position: "absolute",
+                    top: "20px",
+                    right: "20px",
+                    background: "rgba(0,0,0,0.6)",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "#f5f6fa",
+                    fontSize: "20px",
+                    transition: "all 0.2s ease",
+                    zIndex: 10,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "rgba(255,75,75,0.8)";
+                    e.target.style.transform = "scale(1.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "rgba(0,0,0,0.6)";
+                    e.target.style.transform = "scale(1)";
+                  }}
+                >
+                  ✕
+                </button>
+
+                <div style={{ 
+                  display: "flex", 
+                  gap: "32px", 
+                  padding: "32px",
+                  flexDirection: window.innerWidth < 768 ? "column" : "row",
+                  alignItems: window.innerWidth < 768 ? "center" : "flex-start",
+                  overflow: "auto",
+                  maxHeight: "calc(90vh - 100px)"
+                }}>
+                  {/* Media Section - Trailer or Poster */}
+                  <div style={{ 
+                    flexShrink: 0,
+                    width: window.innerWidth < 768 ? "100%" : "400px"
+                  }}>
+                    {trailerLoading ? (
+                      <div style={{
+                        width: "100%",
+                        height: window.innerWidth < 768 ? "225px" : "300px",
+                        background: "#1a1c24",
+                        borderRadius: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#b8c5d6"
+                      }}>
+                        Loading trailer...
+                      </div>
+                    ) : trailer ? (
+                      <div style={{ position: "relative", width: "100%", paddingBottom: "56.25%", borderRadius: "16px", overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,0.4)" }}>
+                        <iframe
+                          src={`https://www.youtube.com/embed/${trailer.key}?autoplay=0&rel=0&modestbranding=1`}
+                          title={`${selectedMovie.title} Trailer`}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            borderRadius: "16px"
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <img
+                        src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster"}
+                        alt={`${selectedMovie.title} poster`}
+                        style={{ 
+                          width: "100%", 
+                          height: "auto",
+                          maxHeight: window.innerWidth < 768 ? "400px" : "500px",
+                          objectFit: "cover", 
+                          borderRadius: "16px",
+                          boxShadow: "0 12px 40px rgba(0,0,0,0.4)"
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Content Section */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h2 className="content-title" style={{ 
+                      marginTop: 0, 
+                      fontSize: "2.4rem", 
+                      marginBottom: "20px",
+                      background: "linear-gradient(45deg, #ffd93d, #ff6b6b)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                      lineHeight: "1.2"
+                    }}>
+                      {selectedMovie.title}
+                    </h2>
+                    
+                    {/* Rating Badge */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
+                      <div style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "8px 16px",
+                        borderRadius: "25px",
+                        background: selectedMovie.vote_average >= 7.5 ? 
+                          "linear-gradient(45deg, #ffd93d, #ffb347)" : 
+                          selectedMovie.vote_average >= 6.0 ? 
+                          "linear-gradient(45deg, #74b9ff, #0984e3)" :
+                          "linear-gradient(45deg, #fd79a8, #e84393)",
+                        color: "#000",
+                        fontWeight: "bold",
+                        fontSize: "1rem",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+                      }}>
+                        ⭐ {selectedMovie.vote_average?.toFixed(1)}
+                      </div>
+                      <span className="content-body" style={{ color: "#b8c5d6", fontSize: "1.1rem" }}>
+                        📅 {selectedMovie.release_date?.split("-")[0] || "—"}
+                      </span>
+                    </div>
+
+                    <p className="content-body" style={{ 
+                      color: "#d1d8e0", 
+                      lineHeight: "1.7", 
+                      marginBottom: "24px",
+                      fontSize: "1.1rem"
+                    }}>
+                      {selectedMovie.overview || "No overview available."}
+                    </p>
+                    
                     {selectedMovie.genre_ids?.length > 0 && (
-                      <div style={{ marginTop: "12px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      <div style={{ marginBottom: "28px", display: "flex", flexWrap: "wrap", gap: "10px" }}>
                         {getGenreNames(selectedMovie.genre_ids).map((g) => (
-                          <span key={g} className="genre-tag">{g}</span>
+                          <span 
+                            key={g} 
+                            className="genre-tag"
+                            style={{
+                              background: "rgba(255, 217, 61, 0.1)",
+                              color: "#ffd93d",
+                              border: "1px solid rgba(255, 217, 61, 0.3)",
+                              padding: "6px 14px",
+                              borderRadius: "18px",
+                              fontSize: "0.9rem",
+                              fontWeight: "500"
+                            }}
+                          >
+                            {g}
+                          </span>
                         ))}
                       </div>
                     )}
+
+                    {/* Providers section */}
+                    <div style={{ marginTop: "12px" }}>
+                      <h3 className="content-title" style={{ fontSize: "1.3rem", marginBottom: "12px" }}>📺 Where to watch</h3>
+                      {providersLoading ? (
+                        <div className="content-body">Loading providers...</div>
+                      ) : providers ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                          {['flatrate', 'free', 'ads', 'rent', 'buy'].map((key) => (
+                            providers[key]?.length ? (
+                              <div key={key}>
+                                <div className="content-body" style={{ color: "#b8c5d6", marginBottom: "8px", fontWeight: "600" }}>
+                                  {key === 'flatrate' ? '🎬 Streaming' : 
+                                   key === 'free' ? '🆓 Free' :
+                                   key === 'ads' ? '📺 With Ads' :
+                                   key === 'rent' ? '💰 Rent' : '🛒 Buy'}
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                                  {providers[key].map((p) => (
+                                    <div key={p.provider_id} title={p.provider_name} style={{ 
+                                      width: "44px", 
+                                      height: "44px", 
+                                      borderRadius: "10px", 
+                                      overflow: "hidden", 
+                                      background: "#0f131a", 
+                                      display: "flex", 
+                                      alignItems: "center", 
+                                      justifyContent: "center", 
+                                      border: "1px solid rgba(255,255,255,0.15)",
+                                      transition: "transform 0.2s ease",
+                                      cursor: "pointer"
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.transform = "scale(1.1)"}
+                                    onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
+                                    >
+                                      {p.logo_path ? (
+                                        <img src={`https://image.tmdb.org/t/p/w92${p.logo_path}`} alt={p.provider_name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                                      ) : (
+                                        <span style={{ fontSize: "0.7rem", color: "#b8c5d6", padding: "4px", textAlign: "center" }}>{p.provider_name}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null
+                          ))}
+                          {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
+                            <div className="content-body" style={{ color: "#b8c5d6" }}>No providers available in your region.</div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="content-body" style={{ color: "#b8c5d6" }}>No provider data available.</div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", padding: "0 20px 20px" }}>
-                  <button className="btn-secondary" onClick={closeModal}>Close</button>
-                  <button className="btn-primary" onClick={closeModal}>Add to Watchlist</button>
+                
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "flex-end", 
+                  gap: "16px", 
+                  padding: "0 32px 32px",
+                  borderTop: "1px solid rgba(255, 217, 61, 0.1)",
+                  paddingTop: "24px"
+                }}>
+                  <button 
+                    className="btn-primary" 
+                    onClick={closeModal}
+                    style={{
+                      background: "linear-gradient(45deg, #ffd93d, #ffb347)",
+                      color: "#000",
+                      border: "none",
+                      padding: "14px 28px",
+                      borderRadius: "30px",
+                      fontWeight: "bold",
+                      fontSize: "1.1rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 6px 20px rgba(255, 217, 61, 0.3)"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = "translateY(-3px)";
+                      e.target.style.boxShadow = "0 10px 30px rgba(255, 217, 61, 0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "0 6px 20px rgba(255, 217, 61, 0.3)";
+                    }}
+                  >
+                    ➕ Add to Watchlist
+                  </button>
                 </div>
               </div>
+
+              <style>
+                {`
+                  @keyframes modalFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                  }
+                  @keyframes modalSlideUp {
+                    from { 
+                      opacity: 0; 
+                      transform: translateY(30px) scale(0.95); 
+                    }
+                    to { 
+                      opacity: 1; 
+                      transform: translateY(0) scale(1); 
+                    }
+                  }
+                `}
+              </style>
             </div>
           )}
         </>

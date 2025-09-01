@@ -28,6 +28,30 @@ function Card(props) {
     }
   };
 
+  const addToLikedList = () => {
+    const movie = {
+      id: props.id || `${props.title}-${props.year}`,
+      title: props.title,
+      poster: props.poster,
+      rating: props.rating,
+      year: props.year,
+      genres: props.genres,
+      likedAt: new Date().toISOString(),
+      favorite: false
+    };
+
+    const existingLikedList = JSON.parse(localStorage.getItem("likedList") || "[]");
+    const movieExists = existingLikedList.find(m => m.id === movie.id);
+    
+    if (!movieExists) {
+      const updatedLikedList = [...existingLikedList, movie];
+      localStorage.setItem("likedList", JSON.stringify(updatedLikedList));
+      alert(`${props.title} added to liked movies!`);
+    } else {
+      alert(`${props.title} is already in your liked movies!`);
+    }
+  };
+
   // Use provided onSelect to notify parent which card was clicked
   const handleClick = () => {
     if (props.onSelect) props.onSelect();
@@ -88,7 +112,7 @@ function Card(props) {
 
         <div className="action-buttons">
           <button className="btn-primary" onClick={(e) => { e.stopPropagation(); addToWatchlist(); }}>⏰ Watch Later</button>
-          <button className="btn-secondary" onClick={(e) => e.stopPropagation()}>❤️ Liked</button>
+          <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); addToLikedList(); }}>❤️ Liked</button>
           <button className="btn-secondary" onClick={(e) => e.stopPropagation()}>🔁 Rewatch</button>
         </div>
 
@@ -96,7 +120,7 @@ function Card(props) {
 
         <div className="info-row">
           <span className="information">Click to see more info!</span>
-            </div>
+        </div>
       </div>
     </div>
 

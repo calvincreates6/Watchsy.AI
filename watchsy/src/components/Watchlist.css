@@ -30,14 +30,16 @@
 
 .watchlist-grid {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 30px;
   padding: 20px 0;
-  max-width: 400px;
+  max-width: 1200px;
   margin: 0 auto;
+  flex-wrap: wrap;
 }
 
 .watchlist-card {
+  width: 360px;
   background: linear-gradient(135deg, #1a1c24 0%, #11131a 100%);
   border-radius: 16px;
   padding: 25px;
@@ -117,8 +119,8 @@
 
 .watchlist-actions button {
   flex: 1;
-  min-width: 120px;
-  padding: 10px 16px;
+  min-width: 100px;
+  padding: 10px 12px;
   font-size: 0.9rem;
   font-weight: 600;
   border: none;

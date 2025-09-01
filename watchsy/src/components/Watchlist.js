@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
 import "./Watchlist.css";
 
 export default function Watchlist() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  const isHero = !searchQuery.trim();
   const [watchlist, setWatchlist] = useState([]);
 
   useEffect(() => {
@@ -13,6 +17,13 @@ export default function Watchlist() {
       setWatchlist(JSON.parse(savedWatchlist));
     }
   }, []);
+
+  const handleSearch = (query) => {
+    if (query.trim()) {
+      // Redirect to home page with search query
+      navigate(`/?search=${encodeURIComponent(query.trim())}`);
+    }
+  };
 
   const removeFromWatchlist = (movieId) => {
     const updatedWatchlist = watchlist.filter(movie => movie.id !== movieId);
@@ -30,18 +41,22 @@ export default function Watchlist() {
 
   if (watchlist.length === 0) {
     return (
-      <div className="watchlist-container">
-        <div className="watchlist-header">
-          <h1>My Watchlist</h1>
-          <p>No movies in your watchlist yet. Add some movies using the "Watch Later" button!</p>
+      <>
+        <Header onSearch={handleSearch} transparent={isHero} />
+        <div className="watchlist-container">
+          <div className="watchlist-header">
+            <h1>My Watchlist</h1>
+            <p>No movies in your watchlist yet. Add some movies using the "Watch Later" button!</p>
+          </div>
         </div>
-      </div>
+        <Footer />
+      </>
     );
   }
 
   return (
     <>
-      <Header />
+      <Header onSearch={handleSearch} transparent={isHero} />
       <div className="watchlist-container">
         <div className="watchlist-header">
           <h1>My Watchlist</h1>

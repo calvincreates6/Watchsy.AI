@@ -16,6 +16,45 @@ export async function fetchGenres() {
     return data.genres; // [{ id: 28, name: 'Action' }, ...]
   }
 
+// Fetch watch providers for a movie by TMDB ID
+export async function fetchWatchProviders(movieId, region = 'US') {
+  const res = await fetch(`${BASE_URL}/movie/${movieId}/watch/providers?api_key=${API_KEY}`);
+  if (!res.ok) throw new Error('Failed to fetch watch providers');
+  const data = await res.json();
+  const results = data.results || {};
+  // Return region-specific providers or an empty object
+  return results[region] || {};
+}
+
+// Fetch YouTube trailers for a movie by TMDB ID
+export async function fetchTrailers(movieId) {
+  try {
+    const res = await fetch(`${BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}`);
+    if (!res.ok) throw new Error('Failed to fetch trailers');
+    const data = await res.json();
+    
+    // Filter for YouTube trailers, prioritize official ones
+    const trailers = data.results.filter(v => 
+      v.site === 'YouTube' && 
+      v.type === 'Trailer'
+    );
+    
+    // Sort by official first, then by name containing "Official"
+    trailers.sort((a, b) => {
+      if (a.official && !b.official) return -1;
+      if (!a.official && b.official) return 1;
+      if (a.name.toLowerCase().includes('official') && !b.name.toLowerCase().includes('official')) return -1;
+      if (!a.name.toLowerCase().includes('official') && b.name.toLowerCase().includes('official')) return 1;
+      return 0;
+    });
+    
+    return trailers[0] || null; // Return best trailer or null
+  } catch (error) {
+    console.error('Error fetching trailers:', error);
+    return null;
+  }
+}
+
 export async function fetchTopMovies2025() {
   try {
     // First, try to get well-known movies from 2025 with rating >= 7.5 and significant vote count
