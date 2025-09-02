@@ -162,16 +162,6 @@
   box-shadow: 0 6px 20px rgba(236, 72, 153, 0.6);
 }
 
-/* Watched button state */
-.btn-secondary.watched {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
-}
-
-.btn-secondary.watched:hover {
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.6);
-}
-
 .clicked-card {
   position: absolute;
   background-color: cyan;
@@ -180,6 +170,18 @@
   width: 100%;
   height: 100%;
   z-index: 1000;
+}
+
+/* Mobile Layout Only - No Style Changes */
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
 }
 
  

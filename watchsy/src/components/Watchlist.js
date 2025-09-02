@@ -220,7 +220,7 @@ export default function Watchlist() {
                       </div>
                       <div className="watchlist-actions">
                         <button 
-                          className="btn-secondary"
+                          className="btn-primary"
                           onClick={() => moveToWatchlist(movie.id)}
                         >
                           ⏰ Move to Watch Later

@@ -116,13 +116,13 @@ function Card(props) {
       case "watched":
         return {
           text: "✅ Watched",
-          className: "btn-secondary watched",
+          className: "btn-primary",
           icon: "✅"
         };
       default:
         return {
           text: "👁️ Mark to Watch",
-          className: "btn-secondary",
+          className: "btn-primary",
           icon: "👁️"
         };
     }

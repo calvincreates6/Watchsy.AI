@@ -229,15 +229,8 @@
   transform: translateY(-2px);
 }
 
+/* Mobile Layout Only - No Style Changes */
 @media (max-width: 768px) {
-  .watchlist-container {
-    padding: 20px 15px;
-  }
-  
-  .watchlist-header h1 {
-    font-size: 2.5rem;
-  }
-  
   .list-toggle {
     flex-direction: column;
     align-items: center;
@@ -250,8 +243,12 @@
   }
   
   .watchlist-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
+    justify-content: center;
+  }
+  
+  .watchlist-card {
+    width: 100%;
+    max-width: 350px;
   }
   
   .watchlist-actions {
@@ -260,5 +257,15 @@
   
   .watchlist-actions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .watchlist-container {
+    padding: 20px 10px;
+  }
+  
+  .watchlist-card {
+    padding: 20px;
   }
 } 

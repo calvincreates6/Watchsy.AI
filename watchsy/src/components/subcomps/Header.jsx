@@ -1,8 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ProfileDropdown from "./ProfileDropdown";
 
 function Header({ onSearch, transparent = false }) {
   const [query, setQuery] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const handleChange = (e) => {
     setQuery(e.target.value);
@@ -23,6 +34,20 @@ function Header({ onSearch, transparent = false }) {
   const headerStyle = transparent
     ? { padding: "10px 0", background: "transparent", position: "sticky", top: 0, zIndex: 10, backdropFilter: "saturate(120%) blur(8px)" }
     : { padding: "10px 0", background: "#181c24", transition: "background 0.3s", position: "sticky", top: 0, zIndex: 10 };
+
+  const searchContainerStyle = {
+    flexGrow: isMobile ? "0" : "1",
+    display: "flex",
+    justifyContent: "center",
+    width: isMobile ? "100%" : "auto"
+  };
+
+  const searchFormStyle = {
+    width: "100%",
+    maxWidth: isMobile ? "100%" : "600px",
+    display: "flex",
+    alignItems: "center"
+  };
 
   return (
     <header className="" style={headerStyle}>
@@ -157,8 +182,8 @@ function Header({ onSearch, transparent = false }) {
         </div>
 
         {/* Search Bar */}
-        <div className="flex-grow-1 d-flex justify-content-center">
-          <form className="w-100" style={{ maxWidth: "600px", display: "flex", alignItems: "center" }} onSubmit={handleSearchClick}>
+        <div className="flex-grow-1 d-flex justify-content-center" style={searchContainerStyle}>
+          <form className="w-100" style={searchFormStyle} onSubmit={handleSearchClick}>
             <input
               id="my-search-bar"
               type="search"
