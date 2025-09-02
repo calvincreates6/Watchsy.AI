@@ -2,6 +2,18 @@ import React, { useEffect, useState } from "react";
 import Card from "./Card";
 import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies } from "../../api/tmdb";
 import background from "../../assets/movie_bg.jpg";
+import movieClapperboard from "../../assets/movie clapperboard.png";
+import castAndCrew from "../../assets/cast and crew.png";
+import buy from "../../assets/buy.png";
+import tv from "../../assets/tv.png";
+import star from "../../assets/star.png";
+import heart from "../../assets/heart.png";
+import eye from "../../assets/eye.png";
+
+import search from "../../assets/search.png";
+import videoReel from "../../assets/video reel.png";
+import camera from "../../assets/camera.png";
+import checklist from "../../assets/checklist.png";
 
 function Content({ searchQuery }) {
   const [movies, setMovies] = useState([]);
@@ -230,7 +242,8 @@ function Content({ searchQuery }) {
                 }
               }}
             >
-              🎬 Start Exploring
+              <img src={movieClapperboard} alt="Start" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Start Exploring
             </button>
             <button
               style={hero.secondaryButton}
@@ -238,13 +251,23 @@ function Content({ searchQuery }) {
               onMouseEnter={(e) => e.target.style.transform = "translateY(-3px)"}
               onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
             >
-              📝 Create Watchlist
+              <img src={checklist} alt="Watchlist" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Create Watchlist
             </button>
           </div>
           <div style={hero.features}>
-            <div style={hero.feature} className="accent-text"><span style={hero.featureIcon}>🔍</span> Search & Discover</div>
-            <div style={hero.feature} className="accent-text"><span style={hero.featureIcon}>❤️</span> Save Favorites</div>
-            <div style={hero.feature} className="accent-text"><span style={hero.featureIcon}>👥</span> Share With Friends</div>
+            <div style={hero.feature} className="accent-text">
+              <img src={search} alt="Search" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Search & Discover
+            </div>
+            <div style={hero.feature} className="accent-text">
+              <img src={heart} alt="Favorites" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Save Favorites
+            </div>
+            <div style={hero.feature} className="accent-text">
+              <img src={castAndCrew} alt="Share" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Share With Friends
+            </div>
           </div>
         </div>
         <div style={hero.visualSection}>
@@ -253,13 +276,19 @@ function Content({ searchQuery }) {
               // Loading state for hero movies
               <>
                 <div style={{ ...hero.movieCard, transform: "rotate(-8deg)", animation: "float 3s ease-in-out infinite alternate" }}>
-                  <div style={hero.loadingPlaceholder}>🎬</div>
+                  <div style={hero.loadingPlaceholder}>
+                    <img src={movieClapperboard} alt="Movie" style={{ width: "40px", height: "40px" }} />
+                  </div>
                 </div>
                 <div style={{ ...hero.movieCard, transform: "rotate(4deg)", animation: "float 3s ease-in-out infinite alternate 0.3s" }}>
-                  <div style={hero.loadingPlaceholder}>🎭</div>
+                  <div style={hero.loadingPlaceholder}>
+                    <img src={videoReel} alt="Video" style={{ width: "40px", height: "40px" }} />
+                  </div>
                 </div>
                 <div style={{ ...hero.movieCard, transform: "rotate(-2deg)", animation: "float 3s ease-in-out infinite alternate 0.6s" }}>
-                  <div style={hero.loadingPlaceholder}>🎪</div>
+                  <div style={hero.loadingPlaceholder}>
+                    <img src={camera} alt="Camera" style={{ width: "40px", height: "40px" }} />
+                  </div>
                 </div>
               </>
             ) : heroMovies.length > 0 ? (
@@ -294,10 +323,15 @@ function Content({ searchQuery }) {
                       }}
                     />
                     <div style={hero.fallbackEmoji} className="fallback-emoji">
-                      {displayIndex === 0 ? '🎬' : displayIndex === 1 ? '🎭' : '🎪'}
+                      <img 
+                        src={movieClapperboard} 
+                        alt="Movie" 
+                        style={{ width: "40px", height: "40px" }}
+                      />
                     </div>
                     <div style={hero.movieRating} className="movie-rating">
-                      ⭐ {movie.vote_average.toFixed(1)}
+                      <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                      {movie.vote_average.toFixed(1)}
                     </div>
                     <div style={hero.movieVotes} className="movie-votes">
                       {movie.vote_count >= 1000 ? 
@@ -318,13 +352,19 @@ function Content({ searchQuery }) {
               // Fallback if no movies found
               <>
                 <div style={{ ...hero.movieCard, transform: "rotate(-8deg)", animation: "float 3s ease-in-out infinite alternate" }}>
-                  <div style={hero.loadingPlaceholder}>🎬</div>
+                  <div style={hero.loadingPlaceholder}>
+                    <img src={movieClapperboard} alt="Movie" style={{ width: "40px", height: "40px" }} />
+                  </div>
                 </div>
                 <div style={{ ...hero.movieCard, transform: "rotate(4deg)", animation: "float 3s ease-in-out infinite alternate 0.3s" }}>
-                  <div style={hero.loadingPlaceholder}>🎭</div>
+                  <div style={hero.loadingPlaceholder}>
+                    <img src={videoReel} alt="Video" style={{ width: "40px", height: "40px" }} />
+                  </div>
                 </div>
                 <div style={{ ...hero.movieCard, transform: "rotate(-2deg)", animation: "float 3s ease-in-out infinite alternate 0.6s" }}>
-                  <div style={hero.loadingPlaceholder}>🎪</div>
+                  <div style={hero.loadingPlaceholder}>
+                    <img src={camera} alt="Camera" style={{ width: "40px", height: "40px" }} />
+                  </div>
                 </div>
               </>
             )}

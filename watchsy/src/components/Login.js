@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "react-phone-input-2/lib/style.css";
 import websiteLogo from "../assets/watchsy.jpg";
 import "../App.css";
+import eye from "../assets/eye.png";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -218,7 +219,7 @@ const Login = () => {
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       className="password-toggle"
                     >
-                      {showPassword ? "🙈" : "👁️"}
+                      <img src={eye} alt="Toggle password" style={{ width: "25px", height: "25px" }} />
                     </button>
                   </div>
 

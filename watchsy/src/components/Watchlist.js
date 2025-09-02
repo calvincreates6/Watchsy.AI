@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
 import "./Watchlist.css";
+import clock from "../assets/clock.png";
+import eye from "../assets/eye.png";
+import star from "../assets/star.png";
+import checklist from "../assets/checklist.png";
+import calendar from "../assets/calendar.png";
 
 export default function Watchlist() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,18 +106,20 @@ export default function Watchlist() {
 
         {/* Toggle Buttons */}
         <div className="list-toggle">
-          <button 
-            className={`toggle-btn ${activeTab === "watchLater" ? "active" : ""}`}
-            onClick={() => setActiveTab("watchLater")}
-          >
-            ⏰ Watch Later ({watchlist.length})
-          </button>
-          <button 
-            className={`toggle-btn ${activeTab === "watched" ? "active" : ""}`}
-            onClick={() => setActiveTab("watched")}
-          >
-            ✅ Already Watched ({watchedList.length})
-          </button>
+                      <button 
+              className={`toggle-btn ${activeTab === "watchLater" ? "active" : ""}`}
+              onClick={() => setActiveTab("watchLater")}
+            >
+              <img src={checklist} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+              Watch Later ({watchlist.length})
+            </button>
+            <button 
+              className={`toggle-btn ${activeTab === "watched" ? "active" : ""}`}
+              onClick={() => setActiveTab("watched")}
+            >
+              <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "16px" }} />
+              Already Watched ({watchedList.length})
+            </button>
 
           <button className="add-list-btn" onClick={() => alert("customizable lists coming soon!")}>
             <span><svg
@@ -152,7 +159,10 @@ export default function Watchlist() {
         {/* Watch Later Section */}
         {activeTab === "watchLater" && (
           <div className="list-section">
-            <h2>⏰ Watch Later</h2>
+            <h2>
+              <img src={checklist} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Watch Later
+            </h2>
             {watchlist.length === 0 ? (
               <p className="empty-message">No movies in your watch later list. Start adding movies!</p>
             ) : (
@@ -163,8 +173,14 @@ export default function Watchlist() {
                     <div className="watchlist-content">
                       <h3 className="watchlist-title">{movie.title}</h3>
                       <div className="watchlist-info">
-                        <span className="rating">⭐ {movie.rating.toFixed(1)}</span>
-                        <span className="year">📅 {movie.year}</span>
+                        <span className="rating">
+                          <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {movie.rating.toFixed(1)}
+                        </span>
+                        <span className="year">
+                          <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {movie.year}
+                        </span>
                       </div>
                       <div className="watchlist-genres">
                         {movie.genres?.map((genre, idx) => (
@@ -176,7 +192,8 @@ export default function Watchlist() {
                           className="btn-primary"
                           onClick={() => moveToWatched(movie.id)}
                         >
-                          ✅ Mark as Watched
+                          <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+                          Mark as Watched
                         </button>
                         <button 
                           className="btn-secondary"
@@ -196,7 +213,10 @@ export default function Watchlist() {
         {/* Already Watched Section */}
         {activeTab === "watched" && (
           <div className="list-section">
-            <h2>✅ Already Watched</h2>
+            <h2>
+              <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Already Watched
+            </h2>
             {watchedList.length === 0 ? (
               <p className="empty-message">No movies marked as watched yet. Watch some movies and mark them!</p>
             ) : (
@@ -207,10 +227,19 @@ export default function Watchlist() {
                     <div className="watchlist-content">
                       <h3 className="watchlist-title">{movie.title}</h3>
                       <div className="watchlist-info">
-                        <span className="rating">⭐ {movie.rating.toFixed(1)}</span>
-                        <span className="year">📅 {movie.year}</span>
+                        <span className="rating">
+                          <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {movie.rating.toFixed(1)}
+                        </span>
+                        <span className="year">
+                          <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {movie.year}
+                        </span>
                         {movie.watchedAt && (
-                          <span className="watched-date">👁️ {new Date(movie.watchedAt).toLocaleDateString()}</span>
+                          <span className="watched-date">
+                            <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                            {new Date(movie.watchedAt).toLocaleDateString()}
+                          </span>
                         )}
                       </div>
                       <div className="watchlist-genres">
@@ -223,7 +252,8 @@ export default function Watchlist() {
                           className="btn-primary"
                           onClick={() => moveToWatchlist(movie.id)}
                         >
-                          ⏰ Move to Watch Later
+                          <img src={clock} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+                          Move to Watch Later
                         </button>
                         <button 
                           className="btn-secondary"

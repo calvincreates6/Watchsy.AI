@@ -5,6 +5,13 @@ import { signOut } from "firebase/auth"; // ⬅️ import Firebase signOut
 import { auth } from "../../firebaseConfig"; // ⬅️ import your Firebase auth instance
 import Image from "../../assets/watchsy.jpg";
 import "./ProfileDropdown.css";
+import movieClapperboard from "../../assets/movie clapperboard.png";
+import heart from "../../assets/heart.png";
+import castAndCrew from "../../assets/cast and crew.png";
+import clock from "../../assets/watchlater clock.png";
+import home from "../../assets/home.png";
+import checklist from "../../assets/checklist.png";
+import blueBird from "../../assets/blue bird.png";
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -93,10 +100,30 @@ function ProfileDropdown() {
       aria-label="Profile options"
       style={dropdownStyle}
     >
-      <li><a href="/" tabIndex={0} role="menuitem">Home</a></li>
-      <li><a href="/watchlist" tabIndex={0} role="menuitem">Watchlist</a></li>
-      <li><a href="/likedlist" tabIndex={0} role="menuitem">Liked Movies</a></li>
-      <li><a href="#" tabIndex={0} role="menuitem">Share with Friends</a></li>
+      <li>
+        <a href="/" tabIndex={0} role="menuitem">
+          <img src={home} alt="Home" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Home
+        </a>
+      </li>
+      <li>
+        <a href="/watchlist" tabIndex={0} role="menuitem">
+          <img src={checklist} alt="Watchlist" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Watchlist
+        </a>
+      </li>
+      <li>
+        <a href="/likedlist" tabIndex={0} role="menuitem">
+          <img src={heart} alt="Liked" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Liked Movies
+        </a>
+      </li>
+      <li>
+        <a href="#" tabIndex={0} role="menuitem">
+          <img src={blueBird} alt="Share" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Share with Friends
+        </a>
+      </li>
       <li>
         <button 
           onClick={handleLogout} 

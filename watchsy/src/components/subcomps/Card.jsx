@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
 import "./Card.css";
+import heart from "../../assets/heart.png";
+import star from "../../assets/star.png";
+import eye from "../../assets/eye.png";
+import clock from "../../assets/clock.png";
+
+const icons = {
+  clock: clock,
+  eye: eye,
+  heart: heart,
+  star: star,
+};
 
 function Card(props) {
   let movieId = -1;
@@ -109,21 +120,21 @@ function Card(props) {
     switch (watchStatus) {
       case "watchLater":
         return {
-          text: "⏰ Watch Later",
+          text: "Watch Later",
           className: "btn-primary",
           icon: "⏰"
         };
       case "watched":
         return {
-          text: "✅ Watched",
+          text: "Watched",
           className: "btn-primary",
           icon: "✅"
         };
       default:
         return {
-          text: "👁️ Mark to Watch",
+          text: "Mark to Watch",
           className: "btn-primary",
-          icon: "👁️"
+          icon: "👀"
         };
     }
   };
@@ -148,9 +159,7 @@ function Card(props) {
           <div className="info-row">
             <span className="info-label">IMDB Rating:</span>
             <div className="rating-display">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gold" viewBox="0 0 16 16">
-                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z" />
-              </svg>
+              <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
               <span className="rating-text">{ratings}</span>
             </div>
           </div>
@@ -180,9 +189,17 @@ function Card(props) {
             className={watchButtonProps.className}
             onClick={(e) => { e.stopPropagation(); toggleWatchStatus(); }}
           >
+            {watchButtonProps.icon && typeof watchButtonProps.icon === 'string' ? (
+              watchButtonProps.icon
+            ) : watchButtonProps.icon ? (
+              <img src={watchButtonProps.icon} alt="Icon" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+            ) : null}
             {watchButtonProps.text}
           </button>
-          <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); addToLikedList(); }}>❤️ Liked</button>
+          <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); addToLikedList(); }}>
+            <img src={heart} alt="Heart" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+            Liked
+          </button>
         </div>
 
         <hr className="divider-line" />

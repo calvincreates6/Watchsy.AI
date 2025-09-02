@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
 import "./LikedList.css";
+import heart from "../assets/heart.png";
+import star from "../assets/star.png";
+import clock from "../assets/watchlater clock.png";
+import calendar from "../assets/calendar.png";
 
 export default function LikedList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,7 +63,7 @@ export default function LikedList() {
         <div className="likedlist-container">
           <div className="likedlist-header">
             <h1> Your Liked Movies</h1>
-            <p>No movies in your liked list yet. Start liking movies using the "❤️ Liked" button!</p>
+            <p>No movies in your liked list yet. Start liking movies using the "Liked" button!</p>
           </div>
         </div>
         <Footer />
@@ -83,8 +87,14 @@ export default function LikedList() {
               <div className="likedlist-content">
                 <h3 className="likedlist-title">{movie.title}</h3>
                 <div className="likedlist-info">
-                  <span className="rating">⭐ {movie.rating}</span>
-                  <span className="year">📅 {movie.year}</span>
+                  <span className="rating">
+                    <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                    {movie.rating}
+                  </span>
+                  <span className="year">
+                    <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                    {movie.year}
+                  </span>
                 </div>
                 <div className="likedlist-genres">
                   {movie.genres?.map((genre, idx) => (
@@ -96,7 +106,8 @@ export default function LikedList() {
                     className={`btn-${movie.favorite ? 'primary' : 'secondary'}`}
                     onClick={() => toggleFavorite(movie.id)}
                   >
-                    {movie.favorite ? '💖 Favorite' : '🤍 Add to Favorites'}
+                    <img src={heart} alt="Heart" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+                    {movie.favorite ? 'Favorite' : 'Add to Favorites'}
                   </button>
                   <button 
                     className="btn-primary"

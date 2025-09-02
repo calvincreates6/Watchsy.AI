@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProfileDropdown from "./ProfileDropdown";
+import buy from "../../assets/buy.png";
+import search from "../../assets/search.png";
 
 function Header({ onSearch, transparent = false }) {
   const [query, setQuery] = useState("");
@@ -207,6 +209,7 @@ function Header({ onSearch, transparent = false }) {
             className="search-button"
               type="submit"
             >
+              <img src={search} alt="Search" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
               Search
             </button>
           </form>
