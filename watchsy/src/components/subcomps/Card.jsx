@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./Card.css";
 
 function Card(props) {
@@ -6,7 +6,24 @@ function Card(props) {
   let ratings = props.rating;
   ratings = ratings.toFixed(1);
 
-  const addToWatchlist = () => {
+  const [watchStatus, setWatchStatus] = useState("none"); // "none", "watchLater", "watched"
+
+  // Check current status when component mounts
+  useEffect(() => {
+    const movieId = props.id || `${props.title}-${props.year}`;
+    const watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
+    const watchedList = JSON.parse(localStorage.getItem("watchedList") || "[]");
+    
+    if (watchlist.find(m => m.id === movieId)) {
+      setWatchStatus("watchLater");
+    } else if (watchedList.find(m => m.id === movieId)) {
+      setWatchStatus("watched");
+    } else {
+      setWatchStatus("none");
+    }
+  }, [props.id, props.title, props.year]);
+
+  const toggleWatchStatus = () => {
     const movie = {
       id: props.id || `${props.title}-${props.year}`,
       title: props.title,
@@ -14,17 +31,39 @@ function Card(props) {
       rating: props.rating,
       year: props.year,
       genres: props.genres,
-      addedAt: new Date().toISOString()
     };
 
-    const existingWatchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-    const movieExists = existingWatchlist.find(m => m.id === movie.id);
-    if (!movieExists) {
-      const updatedWatchlist = [...existingWatchlist, movie];
+    if (watchStatus === "none") {
+      // Add to watch later
+      const existingWatchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
+      const movieExists = existingWatchlist.find(m => m.id === movie.id);
+      if (!movieExists) {
+        const updatedWatchlist = [...existingWatchlist, { ...movie, addedAt: new Date().toISOString() }];
+        localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
+        setWatchStatus("watchLater");
+        alert(`${props.title} added to watch later!`);
+      }
+    } else if (watchStatus === "watchLater") {
+      // Move to watched
+      const watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
+      const watchedList = JSON.parse(localStorage.getItem("watchedList") || "[]");
+      
+      // Remove from watchlist
+      const updatedWatchlist = watchlist.filter(m => m.id !== movie.id);
       localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-      alert(`${props.title} added to watchlist!`);
-    } else {
-      alert(`${props.title} is already in your watchlist!`);
+      
+      // Add to watched
+      const updatedWatchedList = [...watchedList, { ...movie, watchedAt: new Date().toISOString() }];
+      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
+      setWatchStatus("watched");
+      alert(`${props.title} marked as watched!`);
+    } else if (watchStatus === "watched") {
+      // Remove from watched
+      const watchedList = JSON.parse(localStorage.getItem("watchedList") || "[]");
+      const updatedWatchedList = watchedList.filter(m => m.id !== movie.id);
+      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
+      setWatchStatus("none");
+      alert(`${props.title} removed from watched list!`);
     }
   };
 
@@ -64,6 +103,32 @@ function Card(props) {
     img.dataset.fallbackApplied = "true";
     img.src = "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
   };
+
+  // Get button text and styling based on current status
+  const getWatchButtonProps = () => {
+    switch (watchStatus) {
+      case "watchLater":
+        return {
+          text: "⏰ Watch Later",
+          className: "btn-primary",
+          icon: "⏰"
+        };
+      case "watched":
+        return {
+          text: "✅ Watched",
+          className: "btn-secondary watched",
+          icon: "✅"
+        };
+      default:
+        return {
+          text: "👁️ Mark to Watch",
+          className: "btn-secondary",
+          icon: "👁️"
+        };
+    }
+  };
+
+  const watchButtonProps = getWatchButtonProps();
 
   return (
     <div className="movie-card" id={props.id} onClick={handleClick}>
@@ -111,9 +176,13 @@ function Card(props) {
         <hr className="divider-line" />
 
         <div className="action-buttons">
-          <button className="btn-primary" onClick={(e) => { e.stopPropagation(); addToWatchlist(); }}>⏰ Watch Later</button>
+          <button 
+            className={watchButtonProps.className}
+            onClick={(e) => { e.stopPropagation(); toggleWatchStatus(); }}
+          >
+            {watchButtonProps.text}
+          </button>
           <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); addToLikedList(); }}>❤️ Liked</button>
-          <button className="btn-secondary" onClick={(e) => e.stopPropagation()}>🔁 Rewatch</button>
         </div>
 
         <hr className="divider-line" />
