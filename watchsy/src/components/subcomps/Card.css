@@ -172,4 +172,16 @@
   z-index: 1000;
 }
 
+/* Mobile Layout Only - No Style Changes */
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
+}
+
  

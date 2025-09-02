@@ -361,16 +361,16 @@ function Content({ searchQuery }) {
                 ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
                 : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
               return (
-                <Card
-                  key={movie.id}
+              <Card
+                key={movie.id}
                   id={movie.id}
-                  title={movie.title}
+                title={movie.title}
                   poster={posterUrl}
-                  rating={movie.vote_average}
-                  year={movie.release_date?.split("-")[0]}
-                  genres={getGenreNames(movie.genre_ids || [])}
+                rating={movie.vote_average}
+                year={movie.release_date?.split("-")[0]}
+                genres={getGenreNames(movie.genre_ids || [])}
                   onSelect={() => onSelectMovie(movie)}
-                />
+              />
               );
             })}
           </div>
