@@ -8,12 +8,14 @@ import buy from "../../assets/buy.png";
 import tv from "../../assets/tv.png";
 import star from "../../assets/star.png";
 import heart from "../../assets/heart.png";
-import eye from "../../assets/eye.png";
-
+import reel from "../../assets/video reel.png";
+import brokenHeart from "../../assets/broken heart.png";
+import calendar from "../../assets/calendar.png";
 import search from "../../assets/search.png";
 import videoReel from "../../assets/video reel.png";
 import camera from "../../assets/camera.png";
 import checklist from "../../assets/checklist.png";
+import { useUserData } from "../../hooks/useUserData";
 
 function Content({ searchQuery }) {
   const [movies, setMovies] = useState([]);
@@ -32,7 +34,122 @@ function Content({ searchQuery }) {
   const [castLoading, setCastLoading] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]); // Similar movies
   const [similarLoading, setSimilarLoading] = useState(false);
+  
+  // Movie status states for overlay buttons
+  const [movieLiked, setMovieLiked] = useState(false);
+  const [movieWatched, setMovieWatched] = useState(false);
+  const [movieInWatchlist, setMovieInWatchlist] = useState(false);
 
+  const {
+    user,
+    isLoading,
+    isMovieInList,
+    addMovieToLiked,
+    removeMovieFromLiked,
+    addMovieToWatched,
+    removeMovieFromWatched,
+    addMovieToWatchlist,
+    removeMovieFromWatchlist,
+  } = useUserData();
+  
+  // Movie action functions
+  const handleLikeMovie = async () => {
+    if (!selectedMovie) return;
+    if (!user) return alert("Please login");
+    
+    const movie = {
+      id: selectedMovie.id,
+      title: selectedMovie.title,
+      poster: selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : '',
+      rating: selectedMovie.vote_average,
+      year: selectedMovie.release_date?.split("-")[0],
+      genres: selectedMovie.genre_ids ? selectedMovie.genre_ids.map(id => genres[id]).filter(Boolean) : []
+    };
+
+    if (isMovieInList(movie.id, 'liked')) {
+      const res = await removeMovieFromLiked(movie.id);
+      if (res.success) {
+        setMovieLiked(false);
+        alert(`${selectedMovie.title} removed from liked movies!`);
+      }
+    } else {
+      const res = await addMovieToLiked(movie);
+      if (res.success) {
+        setMovieLiked(true);
+        alert(`${selectedMovie.title} added to liked movies!`);
+      }
+    }
+  };
+
+  const handleWatchedMovie = async () => {
+    if (!selectedMovie) return;
+    if (!user) return alert("Please login");
+    
+    const movie = {
+      id: selectedMovie.id,
+      title: selectedMovie.title,
+      poster: selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : '',
+      rating: selectedMovie.vote_average,
+      year: selectedMovie.release_date?.split("-")[0],
+      genres: selectedMovie.genre_ids ? selectedMovie.genre_ids.map(id => genres[id]).filter(Boolean) : []
+    };
+
+    if (isMovieInList(movie.id, 'watched')) {
+      const res = await removeMovieFromWatched(movie.id);
+      if (res.success) {
+        setMovieWatched(false);
+        alert(`${selectedMovie.title} removed from watched list!`);
+      }
+      return;
+    }
+
+    // If movie is in watchlist, remove it first
+    if (isMovieInList(movie.id, 'watchlist')) {
+      await removeMovieFromWatchlist(movie.id);
+      setMovieInWatchlist(false);
+    }
+
+    const res = await addMovieToWatched(movie);
+    if (res.success) {
+      setMovieWatched(true);
+      alert(`${selectedMovie.title} marked as watched!`);
+    }
+  };
+
+  const handleAddToWatchlist = async () => {
+    if (!selectedMovie) return;
+    if (!user) return alert("Please login");
+    
+    // Check if movie is already watched
+    if (isMovieInList(selectedMovie.id, 'watched')) {
+      alert(`${selectedMovie.title} is already marked as watched! Remove it from watched list first if you want to add it to watchlist.`);
+      return;
+    }
+    
+    const movie = {
+      id: selectedMovie.id,
+      title: selectedMovie.title,
+      poster: selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : '',
+      rating: selectedMovie.vote_average,
+      year: selectedMovie.release_date?.split("-")[0],
+      genres: selectedMovie.genre_ids ? selectedMovie.genre_ids.map(id => genres[id]).filter(Boolean) : []
+    };
+
+    if (isMovieInList(movie.id, 'watchlist')) {
+      const res = await removeMovieFromWatchlist(movie.id);
+      if (res.success) {
+        setMovieInWatchlist(false);
+        alert(`${selectedMovie.title} removed from watchlist!`);
+      }
+    } else {
+      const res = await addMovieToWatchlist(movie);
+      if (res.success) {
+        setMovieInWatchlist(true);
+        alert(`${selectedMovie.title} added to watchlist!`);
+      }
+    }
+  };
+  
   // Fetch genres
   useEffect(() => {
     const loadGenres = async () => {
@@ -56,15 +173,8 @@ function Content({ searchQuery }) {
       try {
         setHeroLoading(true);
         const topMovies = await fetchPopularTopMovies();
-        console.log("Hero movies loaded:", topMovies.map(m => ({ 
-          title: m.title, 
-          rating: m.vote_average, 
-          votes: m.vote_count,
-          year: m.release_date?.split("-")[0] 
-        })));
         setHeroMovies(topMovies);
       } catch (err) {
-        console.error("Error fetching hero movies:", err);
         setHeroMovies([]);
       } finally {
         setHeroLoading(false);
@@ -118,7 +228,6 @@ function Content({ searchQuery }) {
         const filtered = (results || []).filter(m => (m?.vote_average || 0) > 0);
         setMovies(filtered);
       } catch (err) {
-        console.error(err);
         setMovies([]);
       } finally {
         setLoading(false);
@@ -130,12 +239,16 @@ function Content({ searchQuery }) {
   const getGenreNames = (genreIds) =>
     genreIds.map((id) => genres[id]).filter(Boolean);
 
-  const closeModal = () => { 
-    setSelectedMovie(null); 
-    setProviders(null); 
+  const closeModal = () => {
+    setSelectedMovie(null);
+    setProviders(null);
     setTrailer(null);
     setCast(null);
     setSimilarMovies([]);
+    // Clear movie status states
+    setMovieLiked(false);
+    setMovieWatched(false);
+    setMovieInWatchlist(false);
   };
   const onSelectMovie = (movie) => setSelectedMovie(movie);
 
@@ -151,7 +264,6 @@ function Content({ searchQuery }) {
         const data = await fetchWatchProviders(selectedMovie.id, region.toUpperCase());
         setProviders(data);
       } catch (e) {
-        console.error('Failed to load watch providers', e);
         setProviders(null);
       } finally {
         setProvidersLoading(false);
@@ -163,7 +275,6 @@ function Content({ searchQuery }) {
         const trailerData = await fetchTrailers(selectedMovie.id);
         setTrailer(trailerData);
       } catch (e) {
-        console.error('Failed to load trailers', e);
         setTrailer(null);
       } finally {
         setTrailerLoading(false);
@@ -175,7 +286,6 @@ function Content({ searchQuery }) {
         const castData = await fetchCast(selectedMovie.id);
         setCast(castData);
       } catch (e) {
-        console.error('Failed to load cast', e);
         setCast(null);
       } finally {
         setCastLoading(false);
@@ -187,7 +297,6 @@ function Content({ searchQuery }) {
         const similarData = await fetchSimilarMovies(selectedMovie.id);
         setSimilarMovies(similarData);
       } catch (e) {
-        console.error('Failed to load similar movies', e);
         setSimilarMovies([]);
       } finally {
         setSimilarLoading(false);
@@ -196,7 +305,16 @@ function Content({ searchQuery }) {
     loadMovieData();
   }, [selectedMovie]);
 
-  // Hero Section
+  // Check movie status when selected
+  useEffect(() => {
+    if (!selectedMovie) return;
+    const movieId = selectedMovie.id;
+    setMovieLiked(isMovieInList(movieId, 'liked'));
+    setMovieInWatchlist(isMovieInList(movieId, 'watchlist'));
+    setMovieWatched(isMovieInList(movieId, 'watched'));
+  }, [selectedMovie, isMovieInList]);
+
+  // Hero Section (unchanged UI)
   const HeroSection = () => (
     <div style={hero.container}>
       <div style={hero.overlay} />
@@ -250,9 +368,10 @@ function Content({ searchQuery }) {
               className="btn-secondary"
               onMouseEnter={(e) => e.target.style.transform = "translateY(-3px)"}
               onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
+              
             >
               <img src={checklist} alt="Watchlist" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
-              Create Watchlist
+              <a href="/watchlist" style={{ textDecoration: "none", color: "inherit" }}>Create Watchlist</a>
             </button>
           </div>
           <div style={hero.features}>
@@ -403,13 +522,13 @@ function Content({ searchQuery }) {
               return (
               <Card
                 key={movie.id}
-                  id={movie.id}
+                id={movie.id}
                 title={movie.title}
-                  poster={posterUrl}
+                poster={posterUrl}
                 rating={movie.vote_average}
                 year={movie.release_date?.split("-")[0]}
                 genres={getGenreNames(movie.genre_ids || [])}
-                  onSelect={() => onSelectMovie(movie)}
+                onSelect={() => onSelectMovie(movie)}
               />
               );
             })}
@@ -587,10 +706,10 @@ function Content({ searchQuery }) {
                         fontSize: "1.1rem",
                         fontFamily: "'Inter', sans-serif"
                       }}>
-                        📅 {selectedMovie.release_date?.split("-")[0] || "—"}
+                        <img src={calendar} alt="Release date" style={{ width: "25px", height: "25px" }} /> {selectedMovie.release_date?.split("-")[0] || "—"}
                       </span>
                     </div>
-
+                    
                     <p className="content-body" style={{ 
                       color: "#d1d8e0", 
                       lineHeight: "1.7", 
@@ -624,7 +743,7 @@ function Content({ searchQuery }) {
                         ))}
                       </div>
                     )}
-
+                    
                     {/* Cast Section */}
                     {cast && (
                       <div style={{ marginBottom: "28px" }}>
@@ -633,7 +752,7 @@ function Content({ searchQuery }) {
                           marginBottom: "12px",
                           fontFamily: "'Montserrat', sans-serif",
                           fontWeight: "600"
-                        }}>🎭 Cast & Crew</h3>
+                        }}><img src={castAndCrew} alt="Cast & Crew" style={{ width: "25px", height: "25px" }} /> Cast & Crew</h3>
                         {castLoading ? (
                           <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading cast...</div>
                         ) : cast.cast?.length > 0 ? (
@@ -686,13 +805,13 @@ function Content({ searchQuery }) {
 
                     {/* Providers section */}
                     <div style={{ marginTop: "12px" }}>
-                                              <h3 className="content-title" style={{ 
+                      <h3 className="content-title" style={{ 
                           fontSize: "1.3rem", 
                           marginBottom: "12px",
                           fontFamily: "'Montserrat', sans-serif",
                           fontWeight: "600"
-                        }}>📺 Where to watch</h3>
-                                              {providersLoading ? (
+                        }}><img src={tv} alt="Where to watch" style={{ width: "25px", height: "25px" }} /> Where to watch</h3>
+                      {providersLoading ? (
                           <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading providers...</div>
                         ) : providers ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -705,10 +824,32 @@ function Content({ searchQuery }) {
                                   fontWeight: "600",
                                   fontFamily: "'Inter', sans-serif"
                                 }}>
-                                  {key === 'flatrate' ? '🎬 Streaming' : 
-                                   key === 'free' ? '🆓 Free' :
-                                   key === 'ads' ? '📺 With Ads' :
-                                   key === 'rent' ? '💰 Rent' : '🛒 Buy'}
+                                  {key === 'flatrate' ? (
+  <>
+    <img src={reel} alt="Streaming" style={{ width: "25px", height: "25px" }} />
+    Streaming
+  </>
+) : key === 'free' ? (
+  <>
+    <img src={brokenHeart} alt="Free" style={{ width: "25px", height: "25px" }} />
+    Free
+  </>
+) : key === 'ads' ? (
+  <>
+    <img src={tv} alt="With Ads" style={{ width: "25px", height: "25px" }} />
+    With Ads
+  </>
+) : key === 'rent' ? (
+  <>
+    <img src={buy} alt="Rent" style={{ width: "25px", height: "25px" }} />
+    Rent
+  </>
+) : (
+  <>
+    <img src={buy} alt="Buy" style={{ width: "25px", height: "25px" }} />
+    Buy
+  </>
+)}
                                 </div>
                                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                                   {providers[key].map((p) => (
@@ -745,14 +886,14 @@ function Content({ searchQuery }) {
                               </div>
                             ) : null
                           ))}
-                                                      {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
+                          {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
                               <div className="content-body" style={{ 
                                 color: "#b8c5d6",
                                 fontFamily: "'Inter', sans-serif"
                               }}>No providers available in your region.</div>
                             )}
                         </div>
-                                              ) : (
+                        ) : (
                           <div className="content-body" style={{ 
                             color: "#b8c5d6",
                             fontFamily: "'Inter', sans-serif"
@@ -768,7 +909,7 @@ function Content({ searchQuery }) {
                           marginBottom: "12px",
                           fontFamily: "'Montserrat', sans-serif",
                           fontWeight: "600"
-                        }}>🎬 You may also like</h3>
+                        }}><img src={reel} alt="You may also like" style={{ width: "25px", height: "25px" }} /> You may also like</h3>
                         {similarLoading ? (
                           <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading recommendations...</div>
                         ) : (
@@ -835,8 +976,9 @@ function Content({ searchQuery }) {
                   <div style={{ display: "flex", gap: "12px" }}>
                     <button 
                       className="btn-secondary"
+                      onClick={handleLikeMovie}
                       style={{
-                        background: "rgba(255, 107, 107, 0.1)",
+                        background: movieLiked ? "rgba(255, 107, 107, 0.3)" : "rgba(255, 107, 107, 0.1)",
                         color: "#ff6b6b",
                         border: "1px solid rgba(255, 107, 107, 0.3)",
                         padding: "10px 16px",
@@ -852,16 +994,17 @@ function Content({ searchQuery }) {
                         e.target.style.transform = "translateY(-2px)";
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = "rgba(255, 107, 107, 0.1)";
+                        e.target.style.background = movieLiked ? "rgba(255, 107, 107, 0.3)" : "rgba(255, 107, 107, 0.1)";
                         e.target.style.transform = "translateY(0)";
                       }}
                     >
-                      ❤️ Like
+                      {movieLiked ? "💖 Liked" : "❤️ Like"}
                     </button>
                     <button 
                       className="btn-secondary"
+                      onClick={handleWatchedMovie}
                       style={{
-                        background: "rgba(34, 197, 94, 0.1)",
+                        background: movieWatched ? "rgba(34, 197, 94, 0.3)" : "rgba(34, 197, 94, 0.1)",
                         color: "#22c55e",
                         border: "1px solid rgba(34, 197, 94, 0.3)",
                         padding: "10px 16px",
@@ -877,21 +1020,21 @@ function Content({ searchQuery }) {
                         e.target.style.transform = "translateY(-2px)";
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = "rgba(34, 197, 94, 0.1)";
+                        e.target.style.background = movieWatched ? "rgba(34, 197, 94, 0.3)" : "rgba(34, 197, 94, 0.1)";
                         e.target.style.transform = "translateY(0)";
                       }}
                     >
-                      ✅ Watched
+                      {movieWatched ? "✅ Watched" : "👁️ Mark as Watched"}
                     </button>
                   </div>
 
                   {/* Add to Watchlist Button */}
                   <button 
                     className="btn-primary" 
-                    onClick={closeModal}
+                    onClick={handleAddToWatchlist}
                     style={{
-                      background: "linear-gradient(45deg, #ffd93d, #ffb347)",
-                      color: "#000",
+                      background: movieInWatchlist ? "linear-gradient(45deg, #ff6b6b, #ff8e8e)" : "linear-gradient(45deg, #ffd93d, #ffb347)",
+                      color: movieInWatchlist ? "#fff" : "#000",
                       border: "none",
                       padding: "14px 28px",
                       borderRadius: "30px",
@@ -902,19 +1045,19 @@ function Content({ searchQuery }) {
                       alignItems: "center",
                       gap: "10px",
                       transition: "all 0.2s ease",
-                      boxShadow: "0 6px 20px rgba(255, 217, 61, 0.3)",
+                      boxShadow: movieInWatchlist ? "0 6px 20px rgba(255, 107, 107, 0.3)" : "0 6px 20px rgba(255, 217, 61, 0.3)",
                       fontFamily: "'Inter', sans-serif"
                     }}
                     onMouseEnter={(e) => {
                       e.target.style.transform = "translateY(-3px)";
-                      e.target.style.boxShadow = "0 10px 30px rgba(255, 217, 61, 0.4)";
+                      e.target.style.boxShadow = movieInWatchlist ? "0 10px 30px rgba(255, 107, 107, 0.4)" : "0 10px 30px rgba(255, 217, 61, 0.4)";
                     }}
                     onMouseLeave={(e) => {
                       e.target.style.transform = "translateY(0)";
-                      e.target.style.boxShadow = "0 6px 20px rgba(255, 217, 61, 0.3)";
+                      e.target.style.boxShadow = movieInWatchlist ? "0 6px 20px rgba(255, 107, 107, 0.3)" : "0 6px 20px rgba(255, 217, 61, 0.3)";
                     }}
                   >
-                    ➕ Add to Watchlist
+                    {movieInWatchlist ? "❌ Remove from Watchlist" : "➕ Add to Watchlist"}
                   </button>
                 </div>
               </div>

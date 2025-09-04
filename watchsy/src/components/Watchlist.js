@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
@@ -8,77 +8,89 @@ import eye from "../assets/eye.png";
 import star from "../assets/star.png";
 import checklist from "../assets/checklist.png";
 import calendar from "../assets/calendar.png";
+import { useUserData } from "../hooks/useUserData";
 
 export default function Watchlist() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("watchLater"); // "watchLater" or "watched"
   const navigate = useNavigate();
   const isHero = !searchQuery.trim();
-  const [watchlist, setWatchlist] = useState([]);
-  const [watchedList, setWatchedList] = useState([]);
 
-  useEffect(() => {
-    // Load both lists from localStorage on component mount
-    const savedWatchlist = localStorage.getItem("watchlist") || "[]";
-    const savedWatchedList = localStorage.getItem("watchedList") || "[]";
-    
-    setWatchlist(JSON.parse(savedWatchlist));
-    setWatchedList(JSON.parse(savedWatchedList));
-  }, []);
+  const {
+    user,
+    loading,
+    isLoading,
+    watchlist,
+    watchedList,
+    addMovieToWatched,
+    addMovieToWatchlist,
+    removeMovieFromWatchlist,
+    removeMovieFromWatched,
+    isMovieInList,
+  } = useUserData();
 
   const handleSearch = (query) => {
     if (query.trim()) {
-      // Redirect to home page with search query
       navigate(`/?search=${encodeURIComponent(query.trim())}`);
     }
   };
 
-  const removeFromWatchlist = (movieId) => {
-    const updatedWatchlist = watchlist.filter(movie => movie.id !== movieId);
-    setWatchlist(updatedWatchlist);
-    localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-  };
-
-  const removeFromWatched = (movieId) => {
-    const updatedWatchedList = watchedList.filter(movie => movie.id !== movieId);
-    setWatchedList(updatedWatchedList);
-    localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
-  };
-
-  const moveToWatched = (movieId) => {
+  const moveToWatched = async (movieId) => {
+    if (!user) return alert("Please login");
     const movie = watchlist.find(m => m.id === movieId);
-    if (movie) {
-      // Remove from watchlist
-      const updatedWatchlist = watchlist.filter(m => m.id !== movieId);
-      setWatchlist(updatedWatchlist);
-      localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-      
-      // Add to watched list
-      const movieWithWatchedDate = { ...movie, watchedAt: new Date().toISOString() };
-      const updatedWatchedList = [...watchedList, movieWithWatchedDate];
-      setWatchedList(updatedWatchedList);
-      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
+    if (!movie) return;
+    if (isMovieInList(movie.id, 'watched')) {
+      await removeMovieFromWatchlist(movie.id);
+      return;
+    }
+    const added = await addMovieToWatched(movie);
+    if (added.success) {
+      await removeMovieFromWatchlist(movie.id);
     }
   };
 
-  const moveToWatchlist = (movieId) => {
+  const moveToWatchlist = async (movieId) => {
+    if (!user) return alert("Please login");
     const movie = watchedList.find(m => m.id === movieId);
-    if (movie) {
-      // Remove from watched list
-      const updatedWatchedList = watchedList.filter(m => m.id !== movieId);
-      setWatchedList(updatedWatchedList);
-      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
-      
-      // Add back to watchlist
-      const movieWithAddedDate = { ...movie, addedAt: new Date().toISOString() };
-      delete movieWithAddedDate.watchedAt; // Remove watched date
-      const updatedWatchlist = [...watchlist, movieWithAddedDate];
-      setWatchlist(updatedWatchlist);
-      localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
+    if (!movie) return;
+    if (isMovieInList(movie.id, 'watchlist')) {
+      await removeMovieFromWatched(movie.id);
+      return;
+    }
+    const added = await addMovieToWatchlist(movie);
+    if (added.success) {
+      await removeMovieFromWatched(movie.id);
     }
   };
 
-  const totalMovies = watchlist.length + watchedList.length;
+  const totalMovies = (watchlist?.length || 0) + (watchedList?.length || 0);
+
+  if (loading || isLoading) {
+    return (
+      <>
+        <Header onSearch={handleSearch} transparent={isHero} />
+        <div className="watchlist-container">
+          <div className="watchlist-header"><h1>Loading...</h1></div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Header onSearch={handleSearch} transparent={isHero} />
+        <div className="watchlist-container">
+          <div className="watchlist-header">
+            <h1>My Lists</h1>
+            <p>Please login to view your lists.</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   if (totalMovies === 0) {
     return (
@@ -106,22 +118,22 @@ export default function Watchlist() {
 
         {/* Toggle Buttons */}
         <div className="list-toggle">
-                      <button 
-              className={`toggle-btn ${activeTab === "watchLater" ? "active" : ""}`}
-              onClick={() => setActiveTab("watchLater")}
-            >
-              <img src={checklist} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
-              Watch Later ({watchlist.length})
-            </button>
-            <button 
-              className={`toggle-btn ${activeTab === "watched" ? "active" : ""}`}
-              onClick={() => setActiveTab("watched")}
-            >
-              <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "16px" }} />
-              Already Watched ({watchedList.length})
-            </button>
+          <button 
+            className={`toggle-btn ${activeTab === "watchLater" ? "active" : ""}`}
+            onClick={() => setActiveTab("watchLater")}
+          >
+            <img src={checklist} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+            Watch Later ({watchlist.length})
+          </button>
+          <button 
+            className={`toggle-btn ${activeTab === "watched" ? "active" : ""}`}
+            onClick={() => setActiveTab("watched")}
+          >
+            <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "16px" }} />
+            Already Watched ({watchedList.length})
+          </button>
 
-          <button className="add-list-btn" onClick={() => alert("customizable lists coming soon!")}>
+          <button className="add-list-btn" onClick={() => alert("customizable lists coming soon!")}> 
             <span><svg
   xmlns="http://www.w3.org/2000/svg"
   x="0px"
@@ -175,7 +187,7 @@ export default function Watchlist() {
                       <div className="watchlist-info">
                         <span className="rating">
                           <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
-                          {movie.rating.toFixed(1)}
+                          {typeof movie.rating === 'number' ? movie.rating.toFixed(1) : movie.rating}
                         </span>
                         <span className="year">
                           <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
@@ -197,7 +209,7 @@ export default function Watchlist() {
                         </button>
                         <button 
                           className="btn-secondary"
-                          onClick={() => removeFromWatchlist(movie.id)}
+                          onClick={() => removeMovieFromWatchlist(movie.id)}
                         >
                           ❌ Remove
                         </button>
@@ -229,7 +241,7 @@ export default function Watchlist() {
                       <div className="watchlist-info">
                         <span className="rating">
                           <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
-                          {movie.rating.toFixed(1)}
+                          {typeof movie.rating === 'number' ? movie.rating.toFixed(1) : movie.rating}
                         </span>
                         <span className="year">
                           <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
@@ -257,7 +269,7 @@ export default function Watchlist() {
                         </button>
                         <button 
                           className="btn-secondary"
-                          onClick={() => removeFromWatched(movie.id)}
+                          onClick={() => removeMovieFromWatched(movie.id)}
                         >
                           ❌ Remove
                         </button>

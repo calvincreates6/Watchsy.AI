@@ -1,0 +1,40 @@
+/* Profile Component Styles */
+
+/* Action Button Hover Effects */
+.action-button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(255, 217, 61, 0.4) !important;
+}
+
+/* Stat Card Hover Effects */
+.stat-card:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 12px 30px rgba(255, 255, 255, 0.15) !important;
+}
+
+/* First stat card (watchlist) - yellow glow on hover */
+.stat-card:nth-child(1):hover {
+  box-shadow: 0 12px 30px rgba(255, 217, 61, 0.2) !important;
+}
+
+/* Second stat card (watched) - red glow on hover */
+.stat-card:nth-child(2):hover {
+  box-shadow: 0 12px 30px rgba(255, 107, 107, 0.2) !important;
+}
+
+/* Third stat card (liked) - red glow on hover */
+.stat-card:nth-child(3):hover {
+  box-shadow: 0 12px 30px rgba(255, 107, 107, 0.2) !important;
+}
+
+/* Setting Button Hover Effects */
+.setting-button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  transform: translateX(4px) !important;
+}
+
+/* Logout Button Hover Effects */
+.logout-button:hover {
+  background-color: rgba(239, 68, 68, 0.3) !important;
+  transform: translateX(4px) !important;
+}

@@ -1,62 +1,83 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
 import "./LikedList.css";
 import heart from "../assets/heart.png";
 import star from "../assets/star.png";
-import clock from "../assets/watchlater clock.png";
 import calendar from "../assets/calendar.png";
+import { useUserData } from "../hooks/useUserData";
 
 export default function LikedList() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const isHero = !searchQuery.trim();
-  const [likedList, setLikedList] = useState([]);
 
-  useEffect(() => {
-    // Load liked list from localStorage on component mount
-    const savedLikedList = localStorage.getItem("likedList");
-    if (savedLikedList) {
-      setLikedList(JSON.parse(savedLikedList));
-    }
-  }, []);
+  const {
+    user,
+    loading,
+    isLoading,
+    likedList,
+    addMovieToWatchlist,
+    removeMovieFromLiked,
+    isMovieInList,
+  } = useUserData();
 
   const handleSearch = (query) => {
     if (query.trim()) {
-      // Redirect to home page with search query
       navigate(`/?search=${encodeURIComponent(query.trim())}`);
     }
   };
 
-  const removeFromLikedList = (movieId) => {
-    const updatedLikedList = likedList.filter(movie => movie.id !== movieId);
-    setLikedList(updatedLikedList);
-    localStorage.setItem("likedList", JSON.stringify(updatedLikedList));
-  };
-
-  const addToWatchlist = (movie) => {
-    const existingWatchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-    const movieExists = existingWatchlist.find(m => m.id === movie.id);
-    
-    if (!movieExists) {
-      const updatedWatchlist = [...existingWatchlist, { ...movie, addedAt: new Date().toISOString() }];
-      localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
+  const handleAddToWatchlist = async (movie) => {
+    if (!user) return alert("Please login to add to watchlist");
+    if (isMovieInList(movie.id, 'watchlist')) {
+      return alert(`${movie.title} is already in your watchlist!`);
+    }
+    const result = await addMovieToWatchlist(movie);
+    if (result.success) {
       alert(`${movie.title} added to watchlist!`);
     } else {
-      alert(`${movie.title} is already in your watchlist!`);
+      alert(result.error || "Failed to add to watchlist");
     }
   };
 
-  const toggleFavorite = (movieId) => {
-    const updatedLikedList = likedList.map(movie => 
-      movie.id === movieId ? { ...movie, favorite: !movie.favorite } : movie
-    );
-    setLikedList(updatedLikedList);
-    localStorage.setItem("likedList", JSON.stringify(updatedLikedList));
+  const handleRemoveFromLiked = async (movieId) => {
+    if (!user) return alert("Please login to remove from liked");
+    const result = await removeMovieFromLiked(movieId);
+    if (!result.success) {
+      alert(result.error || "Failed to remove from liked");
+    }
   };
 
-  if (likedList.length === 0) {
+  if (loading || isLoading) {
+    return (
+      <>
+        <Header onSearch={handleSearch} transparent={isHero} />
+        <div className="likedlist-container">
+          <div className="likedlist-header"><h1>Loading...</h1></div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Header onSearch={handleSearch} transparent={isHero} />
+        <div className="likedlist-container">
+          <div className="likedlist-header">
+            <h1>Your Liked Movies</h1>
+            <p>Please login to view your liked movies.</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!likedList || likedList.length === 0) {
     return (
       <>
         <Header onSearch={handleSearch} transparent={isHero} />
@@ -82,14 +103,14 @@ export default function LikedList() {
         
         <div className="likedlist-grid">
           {likedList.map((movie) => (
-            <div key={movie.id} className={`likedlist-card ${movie.favorite ? 'favorite' : ''}`}>
+            <div key={movie.id} className="likedlist-card">
               <img src={movie.poster} alt={movie.title} className="likedlist-poster" />
               <div className="likedlist-content">
                 <h3 className="likedlist-title">{movie.title}</h3>
                 <div className="likedlist-info">
                   <span className="rating">
                     <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
-                    {movie.rating}
+                    {typeof movie.rating === 'number' ? movie.rating : movie.rating?.toString?.()}
                   </span>
                   <span className="year">
                     <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
@@ -103,21 +124,14 @@ export default function LikedList() {
                 </div>
                 <div className="likedlist-actions">
                   <button 
-                    className={`btn-${movie.favorite ? 'primary' : 'secondary'}`}
-                    onClick={() => toggleFavorite(movie.id)}
-                  >
-                    <img src={heart} alt="Heart" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
-                    {movie.favorite ? 'Favorite' : 'Add to Favorites'}
-                  </button>
-                  <button 
                     className="btn-primary"
-                    onClick={() => addToWatchlist(movie)}
+                    onClick={() => handleAddToWatchlist(movie)}
                   >
                     🔁 Add to Watch Again
                   </button>
                   <button 
                     className="btn-secondary"
-                    onClick={() => removeFromLikedList(movie.id)}
+                    onClick={() => handleRemoveFromLiked(movie.id)}
                   >
                     💔 Remove
                   </button>

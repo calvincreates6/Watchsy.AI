@@ -4,6 +4,7 @@ import heart from "../../assets/heart.png";
 import star from "../../assets/star.png";
 import eye from "../../assets/eye.png";
 import clock from "../../assets/clock.png";
+import { useUserData } from "../../hooks/useUserData";
 
 const icons = {
   clock: clock,
@@ -19,86 +20,97 @@ function Card(props) {
 
   const [watchStatus, setWatchStatus] = useState("none"); // "none", "watchLater", "watched"
 
-  // Check current status when component mounts
+  const {
+    user,
+    watchlist,
+    watchedList,
+    addMovieToWatchlist,
+    removeMovieFromWatchlist,
+    addMovieToWatched,
+    removeMovieFromWatched,
+    addMovieToLiked,
+    removeMovieFromLiked,
+    isMovieInList,
+    loadUserData,
+  } = useUserData();
+
+  // Check current status when component mounts or lists change
   useEffect(() => {
-    const movieId = props.id || `${props.title}-${props.year}`;
-    const watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-    const watchedList = JSON.parse(localStorage.getItem("watchedList") || "[]");
-    
-    if (watchlist.find(m => m.id === movieId)) {
+    const currentId = props.id || `${props.title}-${props.year}`;
+    if (isMovieInList(currentId, 'watchlist')) {
       setWatchStatus("watchLater");
-    } else if (watchedList.find(m => m.id === movieId)) {
+    } else if (isMovieInList(currentId, 'watched')) {
       setWatchStatus("watched");
     } else {
       setWatchStatus("none");
     }
-  }, [props.id, props.title, props.year]);
+  }, [props.id, props.title, props.year, watchlist, watchedList, isMovieInList]);
 
-  const toggleWatchStatus = () => {
-    const movie = {
-      id: props.id || `${props.title}-${props.year}`,
-      title: props.title,
-      poster: props.poster,
-      rating: props.rating,
-      year: props.year,
-      genres: props.genres,
-    };
+  const buildMovie = () => ({
+    id: props.id || `${props.title}-${props.year}`,
+    title: props.title,
+    poster: props.poster,
+    rating: props.rating,
+    year: props.year,
+    genres: props.genres,
+  });
+
+  const toggleWatchStatus = async () => {
+    if (!user) return alert("Please login");
+    const movie = buildMovie();
 
     if (watchStatus === "none") {
-      // Add to watch later
-      const existingWatchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-      const movieExists = existingWatchlist.find(m => m.id === movie.id);
-      if (!movieExists) {
-        const updatedWatchlist = [...existingWatchlist, { ...movie, addedAt: new Date().toISOString() }];
-        localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
+      const res = await addMovieToWatchlist(movie);
+      if (res.success) {
         setWatchStatus("watchLater");
+        await loadUserData();
         alert(`${props.title} added to watch later!`);
+      } else {
+        alert(res.error || "Failed to add to watch later");
       }
     } else if (watchStatus === "watchLater") {
       // Move to watched
-      const watchlist = JSON.parse(localStorage.getItem("watchlist") || "[]");
-      const watchedList = JSON.parse(localStorage.getItem("watchedList") || "[]");
-      
-      // Remove from watchlist
-      const updatedWatchlist = watchlist.filter(m => m.id !== movie.id);
-      localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-      
-      // Add to watched
-      const updatedWatchedList = [...watchedList, { ...movie, watchedAt: new Date().toISOString() }];
-      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
-      setWatchStatus("watched");
-      alert(`${props.title} marked as watched!`);
+      const added = await addMovieToWatched(movie);
+      if (added.success) {
+        await removeMovieFromWatchlist(movie.id);
+        setWatchStatus("watched");
+        await loadUserData();
+        alert(`${props.title} marked as watched!`);
+      } else {
+        alert(added.error || "Failed to mark as watched");
+      }
     } else if (watchStatus === "watched") {
-      // Remove from watched
-      const watchedList = JSON.parse(localStorage.getItem("watchedList") || "[]");
-      const updatedWatchedList = watchedList.filter(m => m.id !== movie.id);
-      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
-      setWatchStatus("none");
-      alert(`${props.title} removed from watched list!`);
+      const res = await removeMovieFromWatched(movie.id);
+      if (res.success) {
+        setWatchStatus("none");
+        await loadUserData();
+        alert(`${props.title} removed from watched list!`);
+      } else {
+        alert(res.error || "Failed to remove from watched");
+      }
     }
   };
 
-  const addToLikedList = () => {
-    const movie = {
-      id: props.id || `${props.title}-${props.year}`,
-      title: props.title,
-      poster: props.poster,
-      rating: props.rating,
-      year: props.year,
-      genres: props.genres,
-      likedAt: new Date().toISOString(),
-      favorite: false
-    };
+  const addToLikedList = async () => {
+    if (!user) return alert("Please login");
+    const movie = buildMovie();
 
-    const existingLikedList = JSON.parse(localStorage.getItem("likedList") || "[]");
-    const movieExists = existingLikedList.find(m => m.id === movie.id);
-    
-    if (!movieExists) {
-      const updatedLikedList = [...existingLikedList, movie];
-      localStorage.setItem("likedList", JSON.stringify(updatedLikedList));
-      alert(`${props.title} added to liked movies!`);
+    if (isMovieInList(movie.id, 'liked')) {
+      const res = await removeMovieFromLiked(movie.id);
+      if (res.success) {
+        await loadUserData();
+        alert(`${props.title} removed from liked movies!`);
+      } else {
+        alert(res.error || "Failed to remove from liked");
+      }
     } else {
-      alert(`${props.title} is already in your liked movies!`);
+      const res = await addMovieToLiked(movie);
+      if (res.success) {
+        await loadUserData();
+        alert(`${props.title} added to liked movies!`);
+      } else {
+        alert(res.error || "Failed to add to liked");
+      }
     }
   };
 
@@ -186,8 +198,9 @@ function Card(props) {
 
         <div className="action-buttons">
           <button 
+            type="button"
             className={watchButtonProps.className}
-            onClick={(e) => { e.stopPropagation(); toggleWatchStatus(); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWatchStatus(); }}
           >
             {watchButtonProps.icon && typeof watchButtonProps.icon === 'string' ? (
               watchButtonProps.icon
@@ -196,7 +209,11 @@ function Card(props) {
             ) : null}
             {watchButtonProps.text}
           </button>
-          <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); addToLikedList(); }}>
+          <button 
+            type="button"
+            className="btn-secondary" 
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToLikedList(); }}
+          >
             <img src={heart} alt="Heart" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
             Liked
           </button>

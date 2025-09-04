@@ -31,6 +31,11 @@ function ProfileDropdown() {
     }
   };
 
+  const handleShare = () => {
+    // navigator.clipboard.writeText("https://www.watchsy.com");
+    alert("Sharing Feature Coming Soon!");
+  };
+
   // Close dropdown on outside click or Escape
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -119,7 +124,7 @@ function ProfileDropdown() {
         </a>
       </li>
       <li>
-        <a href="#" tabIndex={0} role="menuitem">
+        <a href="#" tabIndex={0} role="menuitem" onClick={handleShare}>
           <img src={blueBird} alt="Share" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           Share with Friends
         </a>
@@ -147,7 +152,8 @@ function ProfileDropdown() {
         className="profile-image"
         tabIndex={-1}
         aria-hidden="true"
-        style={{ cursor: 'default' }}
+        style={{ cursor: 'pointer' }}
+        onClick={() => navigate("/profile")}
       />
 
       <button

@@ -190,14 +190,13 @@ function Header({ onSearch, transparent = false }) {
               id="my-search-bar"
               type="search"
               className="form-control form-input"
-              placeholder="Search for movies, series..."
               aria-label="Search for movies and TV shows"
               value={query}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               style={{
                 backgroundColor: "#181c24",
-                color: "#f5f6fa",
+                color: "white",
                 border: "1px solid gold",
                 borderRadius: "25px",
                 padding: "10px 20px",
