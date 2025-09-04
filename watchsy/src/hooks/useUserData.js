@@ -12,8 +12,10 @@ import {
   addToLiked as addToLikedInDB,
   removeFromLiked as removeFromLikedInDB,
   checkMovieInList,
+  getUserDoc,
 } from '../services/database';
 import { collection, onSnapshot, query, orderBy, limit as fsLimit } from 'firebase/firestore';
+import { setDoc } from "firebase/firestore";
 
 export const useUserData = () => {
   const [user, loading, error] = useAuthState(auth);
@@ -86,9 +88,15 @@ export const useUserData = () => {
     });
 
     const unsubLk = onSnapshot(lkQuery, (snap) => {
-      const data = snap.docs.map(d => d.data());
-      setLikedList(data);
-      setUserStats(prev => ({ ...prev, likedCount: data.length }));
+      setLikedList(prev => {
+        const next = snap.docs.map(d => {
+          const doc = d.data();
+          const prevMovie = prev.find(m => m.id === doc.id);
+          return { ...doc, favorite: (doc.favorite !== undefined ? doc.favorite : (prevMovie ? !!prevMovie.favorite : false)) };
+        });
+        return next;
+      });
+      setUserStats(prev => ({ ...prev, likedCount: snap.size }));
       got.lk = true;
       if (got.wl && got.wd && got.lk) setIsLoading(false);
     }, () => {
@@ -203,6 +211,31 @@ export const useUserData = () => {
     return result;
   };
 
+  const toggleFavoriteInDB = async (user, movieId, isFavorite) => {
+    try {
+      const ref = getUserDoc(user, "liked", movieId);
+      await setDoc(ref, {
+        favorite: !isFavorite
+      }, { merge: true });
+      return { success: true };
+    } catch (error) {
+      console.error("Error toggling favorite status:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const toggleFavorite = async (movieId) => {
+    if (!user) return { success: false, error: "Please login to toggle favorite status" };
+    const movie = likedList.find(m => m.id === movieId);
+    if (!movie) return { success: false, error: "Movie not found in liked list" };
+    const result = await toggleFavoriteInDB(user, movieId, movie.favorite);
+    if (result.success) {
+      setLikedList(prev => prev.map(m => m.id === movieId ? { ...m, favorite: !m.favorite } : m));
+      return { success: true };
+    }
+    return result;
+  };
+
   // Check if movie is in a specific list
   const isMovieInList = (movieId, listType) => {
     switch (listType) {
@@ -232,6 +265,7 @@ export const useUserData = () => {
     removeMovieFromWatched,
     addMovieToLiked,
     removeMovieFromLiked,
+    toggleFavorite,
     isMovieInList,
     loadUserData
   };

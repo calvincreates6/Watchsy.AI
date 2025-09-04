@@ -204,7 +204,7 @@ function Content({ searchQuery }) {
       });
     }
   };
-  
+
   // Fetch genres
   useEffect(() => {
     const loadGenres = async () => {
@@ -294,9 +294,9 @@ function Content({ searchQuery }) {
   const getGenreNames = (genreIds) =>
     genreIds.map((id) => genres[id]).filter(Boolean);
 
-  const closeModal = () => {
-    setSelectedMovie(null);
-    setProviders(null);
+  const closeModal = () => { 
+    setSelectedMovie(null); 
+    setProviders(null); 
     setTrailer(null);
     setCast(null);
     setSimilarMovies([]);
@@ -577,13 +577,13 @@ function Content({ searchQuery }) {
               return (
               <Card
                 key={movie.id}
-                id={movie.id}
+                  id={movie.id}
                 title={movie.title}
-                poster={posterUrl}
+                  poster={posterUrl}
                 rating={movie.vote_average}
                 year={movie.release_date?.split("-")[0]}
                 genres={getGenreNames(movie.genre_ids || [])}
-                onSelect={() => onSelectMovie(movie)}
+                  onSelect={() => onSelectMovie(movie)}
               />
               );
             })}
@@ -764,7 +764,7 @@ function Content({ searchQuery }) {
                         <img src={calendar} alt="Release date" style={{ width: "25px", height: "25px" }} /> {selectedMovie.release_date?.split("-")[0] || "—"}
                       </span>
                     </div>
-                    
+
                     <p className="content-body" style={{ 
                       color: "#d1d8e0", 
                       lineHeight: "1.7", 
@@ -798,7 +798,7 @@ function Content({ searchQuery }) {
                         ))}
                       </div>
                     )}
-                    
+
                     {/* Cast Section */}
                     {cast && (
                       <div style={{ marginBottom: "28px" }}>
@@ -860,13 +860,13 @@ function Content({ searchQuery }) {
 
                     {/* Providers section */}
                     <div style={{ marginTop: "12px" }}>
-                      <h3 className="content-title" style={{ 
+                                              <h3 className="content-title" style={{ 
                           fontSize: "1.3rem", 
                           marginBottom: "12px",
                           fontFamily: "'Montserrat', sans-serif",
                           fontWeight: "600"
                         }}><img src={tv} alt="Where to watch" style={{ width: "25px", height: "25px" }} /> Where to watch</h3>
-                      {providersLoading ? (
+                                              {providersLoading ? (
                           <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading providers...</div>
                         ) : providers ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -941,14 +941,14 @@ function Content({ searchQuery }) {
                               </div>
                             ) : null
                           ))}
-                          {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
+                                                      {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
                               <div className="content-body" style={{ 
                                 color: "#b8c5d6",
                                 fontFamily: "'Inter', sans-serif"
                               }}>No providers available in your region.</div>
                             )}
                         </div>
-                        ) : (
+                                              ) : (
                           <div className="content-body" style={{ 
                             color: "#b8c5d6",
                             fontFamily: "'Inter', sans-serif"

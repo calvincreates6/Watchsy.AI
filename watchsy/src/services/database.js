@@ -318,3 +318,5 @@ export const migrateLocalStorageToFirestore = async (user) => {
     return { success: false, error: error.message };
   }
 };
+
+export { getUserDoc };

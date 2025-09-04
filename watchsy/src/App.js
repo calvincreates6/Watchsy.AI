@@ -8,6 +8,7 @@ import Profile from "./components/Profile";
 import Watchlist from "./components/Watchlist";
 import LikedList from "./components/LikedList";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { ToastProvider } from "./components/ToastProvider";
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -59,36 +60,38 @@ function PublicRoute({ children }) {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        } />
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Homepage />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } />
-        <Route path="/watchlist" element={
-          <ProtectedRoute>
-            <Watchlist />
-          </ProtectedRoute>
-        } />
-        <Route path="/likedlist" element={
-          <ProtectedRoute>
-            <LikedList />
-          </ProtectedRoute>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <ToastProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Homepage />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/watchlist" element={
+            <ProtectedRoute>
+              <Watchlist />
+            </ProtectedRoute>
+          } />
+          <Route path="/likedlist" element={
+            <ProtectedRoute>
+              <LikedList />
+            </ProtectedRoute>
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </ToastProvider>
   );
 }
 

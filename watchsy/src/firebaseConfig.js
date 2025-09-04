@@ -3,14 +3,14 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCv2K2fdY9IiLmrbe-Y5LxMs7nJlYS9Y1M",
-    authDomain: "decision-maker-2957b.firebaseapp.com",
-    projectId: "decision-maker-2957b",
-    storageBucket: "decision-maker-2957b.firebasestorage.app",
-    messagingSenderId: "294974317700",
-    appId: "1:294974317700:web:dd0be4ba28c9937c4f8ed1",
-    measurementId: "G-TBG1DCFS7W"
-  };
+  apiKey: "AIzaSyB1haa4o8Ki-gbPwINu9WdYbCqtOt1uEg0",
+  authDomain: "watchsy6.firebaseapp.com",
+  projectId: "watchsy6",
+  storageBucket: "watchsy6.firebasestorage.app",
+  messagingSenderId: "462078176319",
+  appId: "1:462078176319:web:4c58f0d1417f54ba0adc8a",
+  measurementId: "G-VD263CX2ZR"
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

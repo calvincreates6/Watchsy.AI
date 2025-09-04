@@ -9,12 +9,14 @@ import star from "../assets/star.png";
 import checklist from "../assets/checklist.png";
 import calendar from "../assets/calendar.png";
 import { useUserData } from "../hooks/useUserData";
+import { useToast } from "./ToastProvider";
 
 export default function Watchlist() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("watchLater"); // "watchLater" or "watched"
   const navigate = useNavigate();
   const isHero = !searchQuery.trim();
+  const toast = useToast();
 
   const {
     user,
@@ -36,7 +38,7 @@ export default function Watchlist() {
   };
 
   const moveToWatched = async (movieId) => {
-    if (!user) return alert("Please login");
+    if (!user) return toast.info("Please login");
     const movie = watchlist.find(m => m.id === movieId);
     if (!movie) return;
     if (isMovieInList(movie.id, 'watched')) {
@@ -46,11 +48,14 @@ export default function Watchlist() {
     const added = await addMovieToWatched(movie);
     if (added.success) {
       await removeMovieFromWatchlist(movie.id);
+      toast.success(`${movie.title} marked as watched`);
+    } else if (added.error) {
+      toast.error(added.error);
     }
   };
 
   const moveToWatchlist = async (movieId) => {
-    if (!user) return alert("Please login");
+    if (!user) return toast.info("Please login");
     const movie = watchedList.find(m => m.id === movieId);
     if (!movie) return;
     if (isMovieInList(movie.id, 'watchlist')) {
@@ -60,6 +65,9 @@ export default function Watchlist() {
     const added = await addMovieToWatchlist(movie);
     if (added.success) {
       await removeMovieFromWatched(movie.id);
+      toast.success(`${movie.title} moved back to Watch Later`);
+    } else if (added.error) {
+      toast.error(added.error);
     }
   };
 
@@ -133,7 +141,7 @@ export default function Watchlist() {
             Already Watched ({watchedList.length})
           </button>
 
-          <button className="add-list-btn" onClick={() => alert("customizable lists coming soon!")}> 
+          <button className="add-list-btn" onClick={() => toast.info("customizable lists coming soon!")}> 
             <span><svg
   xmlns="http://www.w3.org/2000/svg"
   x="0px"

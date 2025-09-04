@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth"; // ⬅️ import Firebase signOut
 import { auth } from "../../firebaseConfig"; // ⬅️ import your Firebase auth instance
+import { useAuthState } from "react-firebase-hooks/auth";
 import Image from "../../assets/watchsy.jpg";
 import "./ProfileDropdown.css";
 import movieClapperboard from "../../assets/movie clapperboard.png";
@@ -12,6 +13,7 @@ import clock from "../../assets/watchlater clock.png";
 import home from "../../assets/home.png";
 import checklist from "../../assets/checklist.png";
 import blueBird from "../../assets/blue bird.png";
+import ConfirmModal from "../ConfirmModal";
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,13 +21,13 @@ function ProfileDropdown() {
   const buttonRef = useRef();
   const [dropdownStyle, setDropdownStyle] = useState({});
   const navigate = useNavigate();
+  const [user] = useAuthState(auth);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Logout with Firebase
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      console.log("User signed out successfully.");
-      navigate("/login"); // Redirect to login page
+      setConfirmOpen(true);
     } catch (error) {
       console.error("Logout failed:", error.message);
     }
@@ -147,7 +149,7 @@ function ProfileDropdown() {
       style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
     >
       <img
-        src={Image}
+        src={user?.photoURL || Image}
         alt="Profile"
         className="profile-image"
         tabIndex={-1}
@@ -199,6 +201,21 @@ function ProfileDropdown() {
       </button>
 
       {isOpen && ReactDOM.createPortal(dropdownMenu, document.body)}
+      <ConfirmModal
+        open={confirmOpen}
+        title="Sign out?"
+        description="You'll be returned to the login screen."
+        confirmText="Sign out"
+        cancelText="Cancel"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={async () => {
+          setConfirmOpen(false);
+          try {
+            await signOut(auth);
+            navigate("/login");
+          } catch (e) {}
+        }}
+      />
     </div>
   );
 }

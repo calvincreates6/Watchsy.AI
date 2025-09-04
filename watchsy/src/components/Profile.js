@@ -5,6 +5,7 @@ import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
 import "../App.css";
 import "./Profile.css";
+import ConfirmModal from "./ConfirmModal";
 
 // Import icons
 import home from "../assets/home.png";
@@ -29,6 +30,8 @@ function Profile() {
     watchedCount: 0,
     likedCount: 0
   });
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -69,10 +72,7 @@ function Profile() {
 
   const handleLogout = async () => {
     try {
-      // Import auth from firebaseConfig
-      const { auth } = await import("../firebaseConfig");
-      await auth.signOut();
-      navigate("/login");
+      setConfirmOpen(true);
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -102,6 +102,12 @@ function Profile() {
     }
   };
 
+  const handleHeaderSearch = (query) => {
+    const q = (query || '').trim();
+    if (!q) return;
+    navigate(`/?search=${encodeURIComponent(q)}`);
+  };
+
   if (loading || isLoading) {
     return (
       <div style={styles.loadingContainer}>
@@ -124,7 +130,7 @@ function Profile() {
 
   return (
     <div style={styles.container}>
-      <Header />
+      <Header onSearch={handleHeaderSearch} />
       
       {/* Dark Gradient Header Background */}
       <div style={styles.gradientHeader}>
@@ -263,6 +269,22 @@ function Profile() {
       </div>
       
       <Footer />
+      <ConfirmModal
+        open={confirmOpen}
+        title="Sign out?"
+        description="You'll be returned to the login screen."
+        confirmText="Sign out"
+        cancelText="Cancel"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={async () => {
+          setConfirmOpen(false);
+          try {
+            const { auth } = await import("../firebaseConfig");
+            await auth.signOut();
+            navigate("/login");
+          } catch (e) {}
+        }}
+      />
     </div>
   );
 }

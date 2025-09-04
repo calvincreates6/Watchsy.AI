@@ -7,11 +7,13 @@ import heart from "../assets/heart.png";
 import star from "../assets/star.png";
 import calendar from "../assets/calendar.png";
 import { useUserData } from "../hooks/useUserData";
+import { useToast } from "./ToastProvider";
 
 export default function LikedList() {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const isHero = !searchQuery.trim();
+  const toast = useToast();
 
   const {
     user,
@@ -21,6 +23,7 @@ export default function LikedList() {
     addMovieToWatchlist,
     removeMovieFromLiked,
     isMovieInList,
+    toggleFavorite,
   } = useUserData();
 
   const handleSearch = (query) => {
@@ -30,23 +33,32 @@ export default function LikedList() {
   };
 
   const handleAddToWatchlist = async (movie) => {
-    if (!user) return alert("Please login to add to watchlist");
+    if (!user) return toast.info("Please login to add to watchlist");
     if (isMovieInList(movie.id, 'watchlist')) {
-      return alert(`${movie.title} is already in your watchlist!`);
+      return toast.warn(`${movie.title} is already in your watchlist!`);
     }
     const result = await addMovieToWatchlist(movie);
     if (result.success) {
-      alert(`${movie.title} added to watchlist!`);
+      toast.success(`${movie.title} added to watchlist!`);
     } else {
-      alert(result.error || "Failed to add to watchlist");
+      toast.error(result.error || "Failed to add to watchlist");
     }
   };
 
   const handleRemoveFromLiked = async (movieId) => {
-    if (!user) return alert("Please login to remove from liked");
+    if (!user) return toast.info("Please login to remove from liked");
     const result = await removeMovieFromLiked(movieId);
     if (!result.success) {
-      alert(result.error || "Failed to remove from liked");
+      toast.error(result.error || "Failed to remove from liked");
+    }
+  };
+
+  const onToggleFavorite = async (movie) => {
+    const res = await toggleFavorite(movie.id);
+    if (!res?.success) {
+      if (res?.error) toast.error(res.error);
+    } else {
+      toast.success(movie.favorite ? "Removed from favorites" : "Marked as favorite");
     }
   };
 
@@ -103,7 +115,7 @@ export default function LikedList() {
         
         <div className="likedlist-grid">
           {likedList.map((movie) => (
-            <div key={movie.id} className="likedlist-card">
+            <div key={movie.id} className={`likedlist-card${movie.favorite ? ' favorite' : ''}`}>
               <img src={movie.poster} alt={movie.title} className="likedlist-poster" />
               <div className="likedlist-content">
                 <h3 className="likedlist-title">{movie.title}</h3>
@@ -123,6 +135,12 @@ export default function LikedList() {
                   ))}
                 </div>
                 <div className="likedlist-actions">
+                  <button 
+                    className={`btn-${movie.favorite ? 'primary' : 'secondary'}`}
+                    onClick={() => onToggleFavorite(movie)}
+                  >
+                    {movie.favorite ? '💖 Favorite' : '🤍 Add to Favorites'}
+                  </button>
                   <button 
                     className="btn-primary"
                     onClick={() => handleAddToWatchlist(movie)}
