@@ -8,7 +8,11 @@ import {
   query, 
   where, 
   orderBy, 
-  serverTimestamp 
+  serverTimestamp,
+  limit,
+  getCountFromServer,
+  setDoc,
+  getDoc
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
@@ -33,7 +37,7 @@ const getUserCollection = (user, collectionName) => {
 // Get user's document reference
 const getUserDoc = (user, collectionName, docId) => {
   const userId = getUserIdentifier(user);
-  return doc(db, "users", userId, collectionName, docId);
+  return doc(db, "users", userId, collectionName, String(docId));
 };
 
 // Decide timestamp field for ordering
@@ -47,18 +51,20 @@ const getTimestampField = (collectionName) => {
 };
 
 // Generic fetcher with flexible user identification
-const getUserList = async (user, collectionName) => {
+const getUserList = async (user, collectionName, options = {}) => {
   try {
+    const { pageSize = 200 } = options;
     const ref = getUserCollection(user, collectionName);
 
     // Try ordered query first; if it fails (e.g., index/field issues), fall back to unordered
     let snapshot;
     try {
-      const q = query(ref, orderBy(getTimestampField(collectionName), "desc"));
+      const q = query(ref, orderBy(getTimestampField(collectionName), "desc"), limit(pageSize));
       snapshot = await getDocs(q);
     } catch (_) {
       // Fallback without orderBy to avoid 400 errors blocking UI
-      snapshot = await getDocs(ref);
+      const q = query(ref, limit(pageSize));
+      snapshot = await getDocs(q);
     }
 
     const data = snapshot.docs.map((docSnap) => ({
@@ -77,15 +83,15 @@ const getUserList = async (user, collectionName) => {
 
 export const addToWatchlist = async (user, movie) => {
   try {
-    const ref = getUserCollection(user, "watchlist");
-    await addDoc(ref, {
+    const ref = getUserDoc(user, "watchlist", movie.id);
+    await setDoc(ref, {
       ...movie,
       addedAt: serverTimestamp(),
       type: "watchlist",
       userUid: user.uid,
       userEmail: user.email,
       userId: getUserIdentifier(user)
-    });
+    }, { merge: true });
     return { success: true };
   } catch (error) {
     console.error("Error adding to watchlist:", error);
@@ -95,8 +101,17 @@ export const addToWatchlist = async (user, movie) => {
 
 export const removeFromWatchlist = async (user, movieId) => {
   try {
+    // Try direct doc delete first
+    const directRef = getUserDoc(user, "watchlist", movieId);
+    const directSnap = await getDoc(directRef);
+    if (directSnap.exists()) {
+      await deleteDoc(directRef);
+      return { success: true };
+    }
+
+    // Fallback to query by field
     const ref = getUserCollection(user, "watchlist");
-    const q = query(ref, where("id", "==", movieId));
+    const q = query(ref, where("id", "==", movieId), limit(1));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
@@ -117,15 +132,15 @@ export const getWatchlist = (user) => getUserList(user, "watchlist");
 
 export const addToWatched = async (user, movie) => {
   try {
-    const ref = getUserCollection(user, "watched");
-    await addDoc(ref, {
+    const ref = getUserDoc(user, "watched", movie.id);
+    await setDoc(ref, {
       ...movie,
       watchedAt: serverTimestamp(),
       type: "watched",
       userUid: user.uid,
       userEmail: user.email,
       userId: getUserIdentifier(user)
-    });
+    }, { merge: true });
     return { success: true };
   } catch (error) {
     console.error("Error adding to watched:", error);
@@ -135,8 +150,15 @@ export const addToWatched = async (user, movie) => {
 
 export const removeFromWatched = async (user, movieId) => {
   try {
+    const directRef = getUserDoc(user, "watched", movieId);
+    const directSnap = await getDoc(directRef);
+    if (directSnap.exists()) {
+      await deleteDoc(directRef);
+      return { success: true };
+    }
+
     const ref = getUserCollection(user, "watched");
-    const q = query(ref, where("id", "==", movieId));
+    const q = query(ref, where("id", "==", movieId), limit(1));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
@@ -157,15 +179,15 @@ export const getWatchedList = (user) => getUserList(user, "watched");
 
 export const addToLiked = async (user, movie) => {
   try {
-    const ref = getUserCollection(user, "liked");
-    await addDoc(ref, {
+    const ref = getUserDoc(user, "liked", movie.id);
+    await setDoc(ref, {
       ...movie,
       likedAt: serverTimestamp(),
       type: "liked",
       userUid: user.uid,
       userEmail: user.email,
       userId: getUserIdentifier(user)
-    });
+    }, { merge: true });
     return { success: true };
   } catch (error) {
     console.error("Error adding to liked:", error);
@@ -175,8 +197,15 @@ export const addToLiked = async (user, movie) => {
 
 export const removeFromLiked = async (user, movieId) => {
   try {
+    const directRef = getUserDoc(user, "liked", movieId);
+    const directSnap = await getDoc(directRef);
+    if (directSnap.exists()) {
+      await deleteDoc(directRef);
+      return { success: true };
+    }
+
     const ref = getUserCollection(user, "liked");
-    const q = query(ref, where("id", "==", movieId));
+    const q = query(ref, where("id", "==", movieId), limit(1));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
@@ -197,8 +226,14 @@ export const getLikedList = (user) => getUserList(user, "liked");
 
 export const checkMovieInList = async (user, movieId, listType) => {
   try {
+    // Try direct doc read first
+    const directRef = getUserDoc(user, listType, movieId);
+    const snap = await getDoc(directRef);
+    if (snap.exists()) return true;
+
+    // Fallback to query by field
     const ref = getUserCollection(user, listType);
-    const q = query(ref, where("id", "==", movieId));
+    const q = query(ref, where("id", "==", movieId), limit(1));
     const snapshot = await getDocs(q);
     return !snapshot.empty;
   } catch (error) {
@@ -209,18 +244,18 @@ export const checkMovieInList = async (user, movieId, listType) => {
 
 export const getUserStats = async (user) => {
   try {
-    const [watchlist, watched, liked] = await Promise.all([
-      getWatchlist(user),
-      getWatchedList(user),
-      getLikedList(user),
+    const [watchlistCountSnap, watchedCountSnap, likedCountSnap] = await Promise.all([
+      getCountFromServer(query(getUserCollection(user, "watchlist"))),
+      getCountFromServer(query(getUserCollection(user, "watched"))),
+      getCountFromServer(query(getUserCollection(user, "liked"))),
     ]);
 
     return {
       success: true,
       stats: {
-        watchlistCount: watchlist.data?.length || 0,
-        watchedCount: watched.data?.length || 0,
-        likedCount: liked.data?.length || 0,
+        watchlistCount: watchlistCountSnap.data().count || 0,
+        watchedCount: watchedCountSnap.data().count || 0,
+        likedCount: likedCountSnap.data().count || 0,
       },
     };
   } catch (error) {

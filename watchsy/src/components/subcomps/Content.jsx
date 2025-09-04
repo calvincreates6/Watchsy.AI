@@ -43,6 +43,9 @@ function Content({ searchQuery }) {
   const {
     user,
     isLoading,
+    watchlist,
+    watchedList,
+    likedList,
     isMovieInList,
     addMovieToLiked,
     removeMovieFromLiked,
@@ -50,6 +53,7 @@ function Content({ searchQuery }) {
     removeMovieFromWatched,
     addMovieToWatchlist,
     removeMovieFromWatchlist,
+    loadUserData,
   } = useUserData();
   
   // Movie action functions
@@ -67,17 +71,33 @@ function Content({ searchQuery }) {
     };
 
     if (isMovieInList(movie.id, 'liked')) {
-      const res = await removeMovieFromLiked(movie.id);
-      if (res.success) {
-        setMovieLiked(false);
-        alert(`${selectedMovie.title} removed from liked movies!`);
-      }
-    } else {
-      const res = await addMovieToLiked(movie);
-      if (res.success) {
+      // Optimistic unlike
+      setMovieLiked(false);
+      removeMovieFromLiked(movie.id).then((res) => {
+        if (!res.success) {
+          setMovieLiked(true);
+          alert(res.error || "Failed to remove from liked");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
         setMovieLiked(true);
-        alert(`${selectedMovie.title} added to liked movies!`);
-      }
+        alert("Failed to remove from liked");
+      });
+    } else {
+      // Optimistic like
+      setMovieLiked(true);
+      addMovieToLiked(movie).then((res) => {
+        if (!res.success) {
+          setMovieLiked(false);
+          alert(res.error || "Failed to add to liked");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
+        setMovieLiked(false);
+        alert("Failed to add to liked");
+      });
     }
   };
 
@@ -95,25 +115,44 @@ function Content({ searchQuery }) {
     };
 
     if (isMovieInList(movie.id, 'watched')) {
-      const res = await removeMovieFromWatched(movie.id);
-      if (res.success) {
-        setMovieWatched(false);
-        alert(`${selectedMovie.title} removed from watched list!`);
-      }
+      // Optimistic unwatch
+      const prev = movieWatched;
+      setMovieWatched(false);
+      removeMovieFromWatched(movie.id).then((res) => {
+        if (!res.success) {
+          setMovieWatched(prev);
+          alert(res.error || "Failed to remove from watched");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
+        setMovieWatched(prev);
+        alert("Failed to remove from watched");
+      });
       return;
     }
 
-    // If movie is in watchlist, remove it first
+    // If movie is in watchlist, remove it first (optimistic)
     if (isMovieInList(movie.id, 'watchlist')) {
-      await removeMovieFromWatchlist(movie.id);
       setMovieInWatchlist(false);
+      removeMovieFromWatchlist(movie.id).catch(() => {
+        setMovieInWatchlist(true);
+      });
     }
 
-    const res = await addMovieToWatched(movie);
-    if (res.success) {
-      setMovieWatched(true);
-      alert(`${selectedMovie.title} marked as watched!`);
-    }
+    // Optimistic mark as watched
+    setMovieWatched(true);
+    addMovieToWatched(movie).then((res) => {
+      if (!res.success) {
+        setMovieWatched(false);
+        alert(res.error || "Failed to mark as watched");
+      } else {
+        loadUserData();
+      }
+    }).catch(() => {
+      setMovieWatched(false);
+      alert("Failed to mark as watched");
+    });
   };
 
   const handleAddToWatchlist = async () => {
@@ -136,17 +175,33 @@ function Content({ searchQuery }) {
     };
 
     if (isMovieInList(movie.id, 'watchlist')) {
-      const res = await removeMovieFromWatchlist(movie.id);
-      if (res.success) {
-        setMovieInWatchlist(false);
-        alert(`${selectedMovie.title} removed from watchlist!`);
-      }
-    } else {
-      const res = await addMovieToWatchlist(movie);
-      if (res.success) {
+      // Optimistic remove
+      setMovieInWatchlist(false);
+      removeMovieFromWatchlist(movie.id).then((res) => {
+        if (!res.success) {
+          setMovieInWatchlist(true);
+          alert(res.error || "Failed to remove from watchlist");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
         setMovieInWatchlist(true);
-        alert(`${selectedMovie.title} added to watchlist!`);
-      }
+        alert("Failed to remove from watchlist");
+      });
+    } else {
+      // Optimistic add
+      setMovieInWatchlist(true);
+      addMovieToWatchlist(movie).then((res) => {
+        if (!res.success) {
+          setMovieInWatchlist(false);
+          alert(res.error || "Failed to add to watchlist");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
+        setMovieInWatchlist(false);
+        alert("Failed to add to watchlist");
+      });
     }
   };
   
@@ -309,10 +364,10 @@ function Content({ searchQuery }) {
   useEffect(() => {
     if (!selectedMovie) return;
     const movieId = selectedMovie.id;
-    setMovieLiked(isMovieInList(movieId, 'liked'));
-    setMovieInWatchlist(isMovieInList(movieId, 'watchlist'));
-    setMovieWatched(isMovieInList(movieId, 'watched'));
-  }, [selectedMovie, isMovieInList]);
+    setMovieLiked((likedList || []).some(m => m.id === movieId));
+    setMovieInWatchlist((watchlist || []).some(m => m.id === movieId));
+    setMovieWatched((watchedList || []).some(m => m.id === movieId));
+  }, [selectedMovie, watchlist, watchedList, likedList]);
 
   // Hero Section (unchanged UI)
   const HeroSection = () => (

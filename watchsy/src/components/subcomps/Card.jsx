@@ -34,7 +34,7 @@ function Card(props) {
     loadUserData,
   } = useUserData();
 
-  // Check current status when component mounts or lists change
+  // Check current status when component mounts or when identity props change
   useEffect(() => {
     const currentId = props.id || `${props.title}-${props.year}`;
     if (isMovieInList(currentId, 'watchlist')) {
@@ -44,7 +44,7 @@ function Card(props) {
     } else {
       setWatchStatus("none");
     }
-  }, [props.id, props.title, props.year, watchlist, watchedList, isMovieInList]);
+  }, [props.id, props.title, props.year]);
 
   const buildMovie = () => ({
     id: props.id || `${props.title}-${props.year}`,
@@ -60,34 +60,51 @@ function Card(props) {
     const movie = buildMovie();
 
     if (watchStatus === "none") {
-      const res = await addMovieToWatchlist(movie);
-      if (res.success) {
-        setWatchStatus("watchLater");
-        await loadUserData();
-        alert(`${props.title} added to watch later!`);
-      } else {
-        alert(res.error || "Failed to add to watch later");
-      }
-    } else if (watchStatus === "watchLater") {
-      // Move to watched
-      const added = await addMovieToWatched(movie);
-      if (added.success) {
-        await removeMovieFromWatchlist(movie.id);
-        setWatchStatus("watched");
-        await loadUserData();
-        alert(`${props.title} marked as watched!`);
-      } else {
-        alert(added.error || "Failed to mark as watched");
-      }
-    } else if (watchStatus === "watched") {
-      const res = await removeMovieFromWatched(movie.id);
-      if (res.success) {
+      // Optimistic add to watchlist
+      setWatchStatus("watchLater");
+      addMovieToWatchlist(movie).then((res) => {
+        if (!res.success) {
+          setWatchStatus("none");
+          alert(res.error || "Failed to add to watch later");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
         setWatchStatus("none");
-        await loadUserData();
-        alert(`${props.title} removed from watched list!`);
-      } else {
-        alert(res.error || "Failed to remove from watched");
-      }
+        alert("Failed to add to watch later");
+      });
+    } else if (watchStatus === "watchLater") {
+      // Optimistic move to watched
+      const prevStatus = watchStatus;
+      setWatchStatus("watched");
+      addMovieToWatched(movie).then((added) => {
+        if (!added.success) {
+          setWatchStatus(prevStatus);
+          alert(added.error || "Failed to mark as watched");
+          return;
+        }
+        removeMovieFromWatchlist(movie.id).finally(() => {
+          loadUserData();
+        });
+      }).catch(() => {
+        setWatchStatus(prevStatus);
+        alert("Failed to mark as watched");
+      });
+    } else if (watchStatus === "watched") {
+      // Optimistic remove from watched
+      const prevStatus = watchStatus;
+      setWatchStatus("none");
+      removeMovieFromWatched(movie.id).then((res) => {
+        if (!res.success) {
+          setWatchStatus(prevStatus);
+          alert(res.error || "Failed to remove from watched");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
+        setWatchStatus(prevStatus);
+        alert("Failed to remove from watched");
+      });
     }
   };
 
@@ -96,21 +113,27 @@ function Card(props) {
     const movie = buildMovie();
 
     if (isMovieInList(movie.id, 'liked')) {
-      const res = await removeMovieFromLiked(movie.id);
-      if (res.success) {
-        await loadUserData();
-        alert(`${props.title} removed from liked movies!`);
-      } else {
-        alert(res.error || "Failed to remove from liked");
-      }
+      // Optimistic unlike
+      removeMovieFromLiked(movie.id).then((res) => {
+        if (!res.success) {
+          alert(res.error || "Failed to remove from liked");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
+        alert("Failed to remove from liked");
+      });
     } else {
-      const res = await addMovieToLiked(movie);
-      if (res.success) {
-        await loadUserData();
-        alert(`${props.title} added to liked movies!`);
-      } else {
-        alert(res.error || "Failed to add to liked");
-      }
+      // Optimistic like
+      addMovieToLiked(movie).then((res) => {
+        if (!res.success) {
+          alert(res.error || "Failed to add to liked");
+        } else {
+          loadUserData();
+        }
+      }).catch(() => {
+        alert("Failed to add to liked");
+      });
     }
   };
 

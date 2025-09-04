@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig';
 import {
   getWatchlist as getWatchlistFromDB,
   getWatchedList as getWatchedListFromDB,
@@ -12,8 +12,8 @@ import {
   addToLiked as addToLikedInDB,
   removeFromLiked as removeFromLikedInDB,
   checkMovieInList,
-  getUserStats
 } from '../services/database';
+import { collection, onSnapshot, query, orderBy, limit as fsLimit } from 'firebase/firestore';
 
 export const useUserData = () => {
   const [user, loading, error] = useAuthState(auth);
@@ -45,23 +45,89 @@ export const useUserData = () => {
     }
   }, [user, loading]);
 
+  // Live listeners to keep lists in sync across components
+  useEffect(() => {
+    if (!user || loading) return;
+
+    const userId = user.uid || (user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : 'anonymous');
+
+    const wlRef = collection(db, 'users', userId, 'watchlist');
+    const wdRef = collection(db, 'users', userId, 'watched');
+    const lkRef = collection(db, 'users', userId, 'liked');
+
+    const wlQuery = query(wlRef, fsLimit(200));
+    const wdQuery = query(wdRef, fsLimit(200));
+    const lkQuery = query(lkRef, fsLimit(200));
+
+    setIsLoading(true);
+
+    let got = { wl: false, wd: false, lk: false };
+
+    const unsubWl = onSnapshot(wlQuery, (snap) => {
+      const data = snap.docs.map(d => d.data());
+      setWatchlist(data);
+      setUserStats(prev => ({ ...prev, watchlistCount: data.length }));
+      got.wl = true;
+      if (got.wl && got.wd && got.lk) setIsLoading(false);
+    }, () => {
+      got.wl = true;
+      if (got.wl && got.wd && got.lk) setIsLoading(false);
+    });
+
+    const unsubWd = onSnapshot(wdQuery, (snap) => {
+      const data = snap.docs.map(d => d.data());
+      setWatchedList(data);
+      setUserStats(prev => ({ ...prev, watchedCount: data.length }));
+      got.wd = true;
+      if (got.wl && got.wd && got.lk) setIsLoading(false);
+    }, () => {
+      got.wd = true;
+      if (got.wl && got.wd && got.lk) setIsLoading(false);
+    });
+
+    const unsubLk = onSnapshot(lkQuery, (snap) => {
+      const data = snap.docs.map(d => d.data());
+      setLikedList(data);
+      setUserStats(prev => ({ ...prev, likedCount: data.length }));
+      got.lk = true;
+      if (got.wl && got.wd && got.lk) setIsLoading(false);
+    }, () => {
+      got.lk = true;
+      if (got.wl && got.wd && got.lk) setIsLoading(false);
+    });
+
+    return () => {
+      unsubWl();
+      unsubWd();
+      unsubLk();
+    };
+  }, [user, loading]);
+
   const loadUserData = async () => {
     if (!user) return;
+    if (isLoading) return; // prevent overlapping loads
     setIsLoading(true);
 
     try {
-      // Load all user data from Firestore only
-      const [watchlistResult, watchedResult, likedResult, statsResult] = await Promise.all([
+      // Load lists in parallel; compute counts locally to avoid extra reads
+      const [watchlistResult, watchedResult, likedResult] = await Promise.all([
         getWatchlistFromDB(user),
         getWatchedListFromDB(user),
         getLikedListFromDB(user),
-        getUserStats(user)
       ]);
 
-      if (watchlistResult.success) setWatchlist(watchlistResult.data);
-      if (watchedResult.success) setWatchedList(watchedResult.data);
-      if (likedResult.success) setLikedList(likedResult.data);
-      if (statsResult.success) setUserStats(statsResult.stats);
+      const nextWatchlist = watchlistResult.success ? (watchlistResult.data || []) : [];
+      const nextWatched = watchedResult.success ? (watchedResult.data || []) : [];
+      const nextLiked = likedResult.success ? (likedResult.data || []) : [];
+
+      setWatchlist(nextWatchlist);
+      setWatchedList(nextWatched);
+      setLikedList(nextLiked);
+      setUserStats({
+        watchlistCount: nextWatchlist.length,
+        watchedCount: nextWatched.length,
+        likedCount: nextLiked.length,
+      });
 
     } catch (error) {
       // If Firestore fails, show empty lists (no localStorage fallback to avoid cross-account bleed)
@@ -90,7 +156,7 @@ export const useUserData = () => {
     const result = await removeFromWatchlistInDB(user, movieId);
     if (result.success) {
       setWatchlist(prev => prev.filter(movie => movie.id !== movieId));
-      setUserStats(prev => ({ ...prev, watchlistCount: prev.watchlistCount - 1 }));
+      setUserStats(prev => ({ ...prev, watchlistCount: Math.max(0, prev.watchlistCount - 1) }));
     }
     return result;
   };
@@ -111,7 +177,7 @@ export const useUserData = () => {
     const result = await removeFromWatchedInDB(user, movieId);
     if (result.success) {
       setWatchedList(prev => prev.filter(movie => movie.id !== movieId));
-      setUserStats(prev => ({ ...prev, watchedCount: prev.watchedCount - 1 }));
+      setUserStats(prev => ({ ...prev, watchedCount: Math.max(0, prev.watchedCount - 1) }));
     }
     return result;
   };
@@ -132,7 +198,7 @@ export const useUserData = () => {
     const result = await removeFromLikedInDB(user, movieId);
     if (result.success) {
       setLikedList(prev => prev.filter(movie => movie.id !== movieId));
-      setUserStats(prev => ({ ...prev, likedCount: prev.likedCount - 1 }));
+      setUserStats(prev => ({ ...prev, likedCount: Math.max(0, prev.likedCount - 1) }));
     }
     return result;
   };
