@@ -10,6 +10,7 @@ import checklist from "../assets/checklist.png";
 import calendar from "../assets/calendar.png";
 import { useUserData } from "../hooks/useUserData";
 import { useToast } from "./ToastProvider";
+import AdSlot from "./ads/AdSlot";
 
 export default function Watchlist() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -118,6 +119,12 @@ export default function Watchlist() {
   return (
     <>
       <Header onSearch={handleSearch} transparent={isHero} />
+      {/* Fixed sidebar ad that uses remaining viewport width; hidden on smaller screens */}
+      {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
+        <div style={{ position: 'fixed', right: 15, top: 120, width: 150, zIndex: 2 }}>
+          <AdSlot type="sidebar" label="Sponsored • Deals for movie buffs" style={{ width: 150 }} />
+        </div>
+      )}
       <div className="watchlist-container">
         <div className="watchlist-header">
           <h1>My Lists</h1>

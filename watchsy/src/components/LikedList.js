@@ -8,6 +8,7 @@ import star from "../assets/star.png";
 import calendar from "../assets/calendar.png";
 import { useUserData } from "../hooks/useUserData";
 import { useToast } from "./ToastProvider";
+import AdSlot from "./ads/AdSlot";
 
 export default function LikedList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,6 +108,12 @@ export default function LikedList() {
   return (
     <>
       <Header onSearch={handleSearch} transparent={isHero} />
+      {/* Fixed sidebar ad that uses remaining viewport width; hidden on smaller screens */}
+      {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
+        <div style={{ position: 'fixed', right: 15, top: 120, width: 150, zIndex: 2 }}>
+          <AdSlot type="sidebar" label="Sponsored • Premium picks for you" style={{ width: 150 }} />
+        </div>
+      )}
       <div className="likedlist-container">
         <div className="likedlist-header">
           <h1> Your Liked Movies</h1>

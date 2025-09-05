@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Card from "./Card";
 import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies } from "../../api/tmdb";
 import background from "../../assets/movie_bg.jpg";
@@ -18,6 +18,7 @@ import checklist from "../../assets/checklist.png";
 import { useUserData } from "../../hooks/useUserData";
 import { useToast } from "../ToastProvider"; // Import useToast
 import { emit, on } from "../../events/bus";
+import AdSlot from "../ads/AdSlot";
 
 function Content({ searchQuery }) {
   const [movies, setMovies] = useState([]);
@@ -36,6 +37,8 @@ function Content({ searchQuery }) {
   const [castLoading, setCastLoading] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]); // Similar movies
   const [similarLoading, setSimilarLoading] = useState(false);
+  const [stickyActive, setStickyActive] = useState(false);
+  const scrollAreaRef = useRef(null);
 
   // Movie status states for overlay buttons
   const [movieLiked, setMovieLiked] = useState(false);
@@ -372,6 +375,8 @@ function Content({ searchQuery }) {
       }
     };
     loadMovieData();
+    // reset sticky state when opening a new movie
+    setStickyActive(false);
   }, [selectedMovie]);
 
   // Check movie status when selected
@@ -581,22 +586,52 @@ function Content({ searchQuery }) {
             <h2 style={styles.searchTitle} className="content-title">Search Results for "{searchQuery}"</h2>
             <p style={styles.resultCount} className="content-body">{movies.length} movies found</p>
           </div>
+
+          {/* Banner Ad under header */}
+          <div style={{ maxWidth: 1200, margin: "0 auto 20px auto", padding: "0 16px" }}>
+            <AdSlot type="banner" label="Sponsored • Watchsy" />
+          </div>
+
           <div style={styles.movieGrid}>
-            {movies.map((movie) => {
+            {movies.map((movie, idx) => {
               const posterUrl = movie.poster_path
                 ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
                 : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
+
+              // Insert one inline ad after ~ every 8 items (first occurrence only)
+              if (idx === 8) {
+                return (
+                  <React.Fragment key={`ad-${idx}`}>
+                    <AdSlot
+                      type="inline"
+                      label="Sponsored • Recommended for cinephiles"
+                      style={{ width: "100%", maxWidth: "350px", height: 530, borderRadius: 14 }}
+                    />
+                    <Card
+                      key={movie.id}
+                      id={movie.id}
+                      title={movie.title}
+                      poster={posterUrl}
+                      rating={movie.vote_average}
+                      year={movie.release_date?.split("-")[0]}
+                      genres={getGenreNames(movie.genre_ids || [])}
+                      onSelect={() => onSelectMovie(movie)}
+                    />
+                  </React.Fragment>
+                );
+              }
+
               return (
-              <Card
-                key={movie.id}
+                <Card
+                  key={movie.id}
                   id={movie.id}
-                title={movie.title}
+                  title={movie.title}
                   poster={posterUrl}
-                rating={movie.vote_average}
-                year={movie.release_date?.split("-")[0]}
-                genres={getGenreNames(movie.genre_ids || [])}
+                  rating={movie.vote_average}
+                  year={movie.release_date?.split("-")[0]}
+                  genres={getGenreNames(movie.genre_ids || [])}
                   onSelect={() => onSelectMovie(movie)}
-              />
+                />
               );
             })}
           </div>
@@ -676,11 +711,24 @@ function Content({ searchQuery }) {
                   alignItems: window.innerWidth < 768 ? "center" : "flex-start",
                   overflow: "auto",
                   maxHeight: "calc(90vh - 100px)"
-                }}>
+                }}
+                ref={scrollAreaRef}
+                onScroll={() => {
+                  const scroller = scrollAreaRef.current;
+                  if (!scroller) return;
+                  const threshold = 120; // px before sticking
+                  if (scroller.scrollTop > threshold && !stickyActive) setStickyActive(true);
+                  else if (scroller.scrollTop <= threshold && stickyActive) setStickyActive(false);
+                }}
+                >
                   {/* Media Section - Trailer or Poster */}
                   <div style={{
                     flexShrink: 0,
-                    width: window.innerWidth < 768 ? "100%" : "450px"
+                    width: window.innerWidth < 768 ? "100%" : "450px",
+                                position: window.innerWidth < 768 ? "relative" : "sticky",
+            top: window.innerWidth < 768 ? undefined : "24px",
+                    alignSelf: window.innerWidth < 768 ? "stretch" : "flex-start",
+                    zIndex: 2
                   }}>
                     {trailerLoading ? (
                       <div style={{
