@@ -101,27 +101,28 @@ export const addToWatchlist = async (user, movie) => {
 
 export const removeFromWatchlist = async (user, movieId) => {
   try {
-    // Direct delete without pre-read check
+    // Try direct doc delete first
     const directRef = getUserDoc(user, "watchlist", movieId);
-    await deleteDoc(directRef);
+    const directSnap = await getDoc(directRef);
+    if (directSnap.exists()) {
+      await deleteDoc(directRef);
+      return { success: true };
+    }
+
+    // Fallback to query by field
+    const ref = getUserCollection(user, "watchlist");
+    const q = query(ref, where("id", "==", movieId), limit(1));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return { success: false, error: "Movie not found in watchlist" };
+    }
+
+    await deleteDoc(snapshot.docs[0].ref);
     return { success: true };
   } catch (error) {
-    // If direct delete fails (doc doesn't exist), try query fallback
-    try {
-      const ref = getUserCollection(user, "watchlist");
-      const q = query(ref, where("id", "==", movieId), limit(1));
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        return { success: false, error: "Movie not found in watchlist" };
-      }
-
-      await deleteDoc(snapshot.docs[0].ref);
-      return { success: true };
-    } catch (fallbackError) {
-      console.error("Error removing from watchlist:", fallbackError);
-      return { success: false, error: fallbackError.message };
-    }
+    console.error("Error removing from watchlist:", error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -149,27 +150,26 @@ export const addToWatched = async (user, movie) => {
 
 export const removeFromWatched = async (user, movieId) => {
   try {
-    // Direct delete without pre-read check
     const directRef = getUserDoc(user, "watched", movieId);
-    await deleteDoc(directRef);
+    const directSnap = await getDoc(directRef);
+    if (directSnap.exists()) {
+      await deleteDoc(directRef);
+      return { success: true };
+    }
+
+    const ref = getUserCollection(user, "watched");
+    const q = query(ref, where("id", "==", movieId), limit(1));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return { success: false, error: "Movie not found in watched list" };
+    }
+
+    await deleteDoc(snapshot.docs[0].ref);
     return { success: true };
   } catch (error) {
-    // If direct delete fails (doc doesn't exist), try query fallback
-    try {
-      const ref = getUserCollection(user, "watched");
-      const q = query(ref, where("id", "==", movieId), limit(1));
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        return { success: false, error: "Movie not found in watched list" };
-      }
-
-      await deleteDoc(snapshot.docs[0].ref);
-      return { success: true };
-    } catch (fallbackError) {
-      console.error("Error removing from watched:", fallbackError);
-      return { success: false, error: fallbackError.message };
-    }
+    console.error("Error removing from watched:", error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -197,27 +197,26 @@ export const addToLiked = async (user, movie) => {
 
 export const removeFromLiked = async (user, movieId) => {
   try {
-    // Direct delete without pre-read check
     const directRef = getUserDoc(user, "liked", movieId);
-    await deleteDoc(directRef);
+    const directSnap = await getDoc(directRef);
+    if (directSnap.exists()) {
+      await deleteDoc(directRef);
+      return { success: true };
+    }
+
+    const ref = getUserCollection(user, "liked");
+    const q = query(ref, where("id", "==", movieId), limit(1));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return { success: false, error: "Movie not found in liked list" };
+    }
+
+    await deleteDoc(snapshot.docs[0].ref);
     return { success: true };
   } catch (error) {
-    // If direct delete fails (doc doesn't exist), try query fallback
-    try {
-      const ref = getUserCollection(user, "liked");
-      const q = query(ref, where("id", "==", movieId), limit(1));
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        return { success: false, error: "Movie not found in liked list" };
-      }
-
-      await deleteDoc(snapshot.docs[0].ref);
-      return { success: true };
-    } catch (fallbackError) {
-      console.error("Error removing from liked:", fallbackError);
-      return { success: false, error: fallbackError.message };
-    }
+    console.error("Error removing from liked:", error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -321,3 +320,4 @@ export const migrateLocalStorageToFirestore = async (user) => {
 };
 
 export { getUserDoc };
+ 

@@ -53,7 +53,7 @@ function Content({ searchQuery }) {
     removeMovieFromWatched,
     addMovieToWatchlist,
     removeMovieFromWatchlist,
-    loadUserData,
+    
   } = useUserData();
   
   // Movie action functions
@@ -78,7 +78,7 @@ function Content({ searchQuery }) {
           setMovieLiked(true);
           alert(res.error || "Failed to remove from liked");
         } else {
-          loadUserData();
+          
         }
       }).catch(() => {
         setMovieLiked(true);
@@ -92,7 +92,7 @@ function Content({ searchQuery }) {
           setMovieLiked(false);
           alert(res.error || "Failed to add to liked");
         } else {
-          loadUserData();
+          
         }
       }).catch(() => {
         setMovieLiked(false);
@@ -123,7 +123,7 @@ function Content({ searchQuery }) {
           setMovieWatched(prev);
           alert(res.error || "Failed to remove from watched");
         } else {
-          loadUserData();
+          
         }
       }).catch(() => {
         setMovieWatched(prev);
@@ -147,7 +147,7 @@ function Content({ searchQuery }) {
         setMovieWatched(false);
         alert(res.error || "Failed to mark as watched");
       } else {
-        loadUserData();
+        
       }
     }).catch(() => {
       setMovieWatched(false);
@@ -182,7 +182,7 @@ function Content({ searchQuery }) {
           setMovieInWatchlist(true);
           alert(res.error || "Failed to remove from watchlist");
         } else {
-          loadUserData();
+          
         }
       }).catch(() => {
         setMovieInWatchlist(true);
@@ -196,7 +196,7 @@ function Content({ searchQuery }) {
           setMovieInWatchlist(false);
           alert(res.error || "Failed to add to watchlist");
         } else {
-          loadUserData();
+          
         }
       }).catch(() => {
         setMovieInWatchlist(false);
@@ -383,7 +383,7 @@ function Content({ searchQuery }) {
           </p>
           <div style={hero.ctaSection}>
             <button
-              style={hero.primaryButton}
+              style={{...hero.primaryButton, width: "150px"}}
               className="btn-primary"
               onMouseEnter={(e) => e.target.style.transform = "translateY(-3px)"}
               onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
@@ -744,11 +744,11 @@ function Content({ searchQuery }) {
                         padding: "8px 16px",
                         borderRadius: "25px",
                         background: selectedMovie.vote_average >= 7.5 ? 
-                          "linear-gradient(45deg, #ffd93d, #ffb347)" : 
+                          "linear-gradient(90deg,rgba(42, 123, 155, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%)" :
                           selectedMovie.vote_average >= 6.0 ? 
-                          "linear-gradient(45deg, #74b9ff, #0984e3)" :
-                          "linear-gradient(45deg, #fd79a8, #e84393)",
-                        color: "#000",
+                          "linear-gradient(90deg,rgba(5, 0, 77, 1) 0%, rgba(0, 0, 163, 1) 35%, rgba(0, 212, 255, 1) 100%)" :
+                          "linear-gradient(90deg,rgba(131, 58, 180, 1) 0%, rgba(253, 29, 29, 1) 100%)",
+                        color: "#ffffff",
                         fontWeight: "bold",
                         fontSize: "1rem",
                         boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
@@ -1028,7 +1028,7 @@ function Content({ searchQuery }) {
                   paddingTop: "24px"
                 }}>
                   {/* User Action Buttons */}
-                  <div style={{ display: "flex", gap: "12px" }}>
+                  <div style={{ display: "flex", gap: "12px", width: "auto"}}>
                     <button 
                       className="btn-secondary"
                       onClick={handleLikeMovie}
@@ -1036,8 +1036,8 @@ function Content({ searchQuery }) {
                         background: movieLiked ? "rgba(255, 107, 107, 0.3)" : "rgba(255, 107, 107, 0.1)",
                         color: "#ff6b6b",
                         border: "1px solid rgba(255, 107, 107, 0.3)",
-                        padding: "10px 16px",
-                        borderRadius: "20px",
+                        padding: "8px 16px",
+                        borderRadius: "15px",
                         fontWeight: "600",
                         fontSize: "0.9rem",
                         cursor: "pointer",
@@ -1062,8 +1062,8 @@ function Content({ searchQuery }) {
                         background: movieWatched ? "rgba(34, 197, 94, 0.3)" : "rgba(34, 197, 94, 0.1)",
                         color: "#22c55e",
                         border: "1px solid rgba(34, 197, 94, 0.3)",
-                        padding: "10px 16px",
-                        borderRadius: "20px",
+                        padding: "8px 14px",
+                        borderRadius: "15px",
                         fontWeight: "600",
                         fontSize: "0.9rem",
                         cursor: "pointer",
@@ -1079,7 +1079,7 @@ function Content({ searchQuery }) {
                         e.target.style.transform = "translateY(0)";
                       }}
                     >
-                      {movieWatched ? "✅ Watched" : "👁️ Mark as Watched"}
+                      {movieWatched ? "✅ Watched" : "👁️ Mark Watched"}
                     </button>
                   </div>
 
@@ -1090,6 +1090,7 @@ function Content({ searchQuery }) {
                     style={{
                       background: movieInWatchlist ? "linear-gradient(45deg, #ff6b6b, #ff8e8e)" : "linear-gradient(45deg, #ffd93d, #ffb347)",
                       color: movieInWatchlist ? "#fff" : "#000",
+                      width: "auto",
                       border: "none",
                       padding: "14px 28px",
                       borderRadius: "30px",
@@ -1225,7 +1226,7 @@ const hero = {
     backgroundClip: "text",
   },
   subtitle: { fontSize: "1.3rem", marginBottom: "40px", lineHeight: 1.6 },
-  ctaSection: { display: "flex", gap: "20px", marginBottom: "40px" },
+  ctaSection: { display: "flex", gap: "20px", marginBottom: "40px"},
   primaryButton: {
     padding: "12px 28px",
     fontSize: "1.1rem",

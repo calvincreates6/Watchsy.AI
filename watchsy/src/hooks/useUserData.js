@@ -2,19 +2,15 @@ import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebaseConfig';
 import {
-  getWatchlist as getWatchlistFromDB,
-  getWatchedList as getWatchedListFromDB,
-  getLikedList as getLikedListFromDB,
   addToWatchlist as addToWatchlistInDB,
   removeFromWatchlist as removeFromWatchlistInDB,
   addToWatched as addToWatchedInDB,
   removeFromWatched as removeFromWatchedInDB,
   addToLiked as addToLikedInDB,
   removeFromLiked as removeFromLikedInDB,
-  checkMovieInList,
   getUserDoc,
 } from '../services/database';
-import { collection, onSnapshot, query, orderBy, limit as fsLimit } from 'firebase/firestore';
+import { collection, onSnapshot, query, limit as fsLimit } from 'firebase/firestore';
 import { setDoc } from "firebase/firestore";
 
 export const useUserData = () => {
@@ -36,8 +32,7 @@ export const useUserData = () => {
       localStorage.removeItem('watchlist');
       localStorage.removeItem('watchedList');
       localStorage.removeItem('likedList');
-
-      loadUserData();
+      // Rely on realtime listeners for initial data; no manual fetch
     } else if (!user && !loading) {
       // Clear data when user logs out
       setWatchlist([]);
@@ -110,43 +105,6 @@ export const useUserData = () => {
       unsubLk();
     };
   }, [user, loading]);
-
-  const loadUserData = async () => {
-    if (!user) return;
-    if (isLoading) return; // prevent overlapping loads
-    setIsLoading(true);
-
-    try {
-      // Load lists in parallel; compute counts locally to avoid extra reads
-      const [watchlistResult, watchedResult, likedResult] = await Promise.all([
-        getWatchlistFromDB(user),
-        getWatchedListFromDB(user),
-        getLikedListFromDB(user),
-      ]);
-
-      const nextWatchlist = watchlistResult.success ? (watchlistResult.data || []) : [];
-      const nextWatched = watchedResult.success ? (watchedResult.data || []) : [];
-      const nextLiked = likedResult.success ? (likedResult.data || []) : [];
-
-      setWatchlist(nextWatchlist);
-      setWatchedList(nextWatched);
-      setLikedList(nextLiked);
-      setUserStats({
-        watchlistCount: nextWatchlist.length,
-        watchedCount: nextWatched.length,
-        likedCount: nextLiked.length,
-      });
-
-    } catch (error) {
-      // If Firestore fails, show empty lists (no localStorage fallback to avoid cross-account bleed)
-      setWatchlist([]);
-      setWatchedList([]);
-      setLikedList([]);
-      setUserStats({ watchlistCount: 0, watchedCount: 0, likedCount: 0 });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Watchlist operations
   const addMovieToWatchlist = async (movie) => {
@@ -266,7 +224,6 @@ export const useUserData = () => {
     addMovieToLiked,
     removeMovieFromLiked,
     toggleFavorite,
-    isMovieInList,
-    loadUserData
+    isMovieInList
   };
 };

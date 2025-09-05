@@ -1,50 +1,44 @@
 import React, { useState, useEffect } from "react";
 import "./Card.css";
-import heart from "../../assets/heart.png";
 import star from "../../assets/star.png";
-import eye from "../../assets/eye.png";
-import clock from "../../assets/clock.png";
 import { useUserData } from "../../hooks/useUserData";
-
-const icons = {
-  clock: clock,
-  eye: eye,
-  heart: heart,
-  star: star,
-};
 
 function Card(props) {
   let movieId = -1;
   let ratings = props.rating;
   ratings = ratings.toFixed(1);
 
-  const [watchStatus, setWatchStatus] = useState("none"); // "none", "watchLater", "watched"
+  const [watchStatus, setWatchStatus] = useState("none"); // "none", "watchLater"
+  const [liked, setLiked] = useState(false);
 
   const {
     user,
     watchlist,
-    watchedList,
+    likedList,
     addMovieToWatchlist,
     removeMovieFromWatchlist,
-    addMovieToWatched,
-    removeMovieFromWatched,
     addMovieToLiked,
     removeMovieFromLiked,
     isMovieInList,
-    loadUserData,
   } = useUserData();
 
-  // Check current status when component mounts or when identity props change
+  // Set initial states based on lists
   useEffect(() => {
     const currentId = props.id || `${props.title}-${props.year}`;
     if (isMovieInList(currentId, 'watchlist')) {
       setWatchStatus("watchLater");
-    } else if (isMovieInList(currentId, 'watched')) {
-      setWatchStatus("watched");
     } else {
       setWatchStatus("none");
     }
+    setLiked(isMovieInList(currentId, 'liked'));
   }, [props.id, props.title, props.year]);
+
+  // Keep in sync with global list changes (overlay <-> card)
+  useEffect(() => {
+    const currentId = props.id || `${props.title}-${props.year}`;
+    setWatchStatus(isMovieInList(currentId, 'watchlist') ? 'watchLater' : 'none');
+    setLiked(isMovieInList(currentId, 'liked'));
+  }, [watchlist, likedList, props.id, props.title, props.year]);
 
   const buildMovie = () => ({
     id: props.id || `${props.title}-${props.year}`,
@@ -65,73 +59,56 @@ function Card(props) {
       addMovieToWatchlist(movie).then((res) => {
         if (!res.success) {
           setWatchStatus("none");
-          alert(res.error || "Failed to add to watch later");
-        } else {
-          loadUserData();
+          alert(res.error || "Failed to add to watchlist");
         }
       }).catch(() => {
         setWatchStatus("none");
-        alert("Failed to add to watch later");
+        alert("Failed to add to watchlist");
       });
     } else if (watchStatus === "watchLater") {
-      // Optimistic move to watched
-      const prevStatus = watchStatus;
-      setWatchStatus("watched");
-      addMovieToWatched(movie).then((added) => {
-        if (!added.success) {
-          setWatchStatus(prevStatus);
-          alert(added.error || "Failed to mark as watched");
-          return;
-        }
-        removeMovieFromWatchlist(movie.id).finally(() => {
-          loadUserData();
-        });
-      }).catch(() => {
-        setWatchStatus(prevStatus);
-        alert("Failed to mark as watched");
-      });
-    } else if (watchStatus === "watched") {
-      // Optimistic remove from watched
+      // Optimistic remove from watchlist
       const prevStatus = watchStatus;
       setWatchStatus("none");
-      removeMovieFromWatched(movie.id).then((res) => {
+      removeMovieFromWatchlist(movie.id).then((res) => {
         if (!res.success) {
           setWatchStatus(prevStatus);
-          alert(res.error || "Failed to remove from watched");
-        } else {
-          loadUserData();
+          alert(res.error || "Failed to remove from watchlist");
         }
       }).catch(() => {
         setWatchStatus(prevStatus);
-        alert("Failed to remove from watched");
+        alert("Failed to remove from watchlist");
       });
     }
   };
 
-  const addToLikedList = async () => {
+  const toggleLiked = async () => {
     if (!user) return alert("Please login");
     const movie = buildMovie();
 
     if (isMovieInList(movie.id, 'liked')) {
       // Optimistic unlike
+      const prev = liked;
+      setLiked(false);
       removeMovieFromLiked(movie.id).then((res) => {
         if (!res.success) {
+          setLiked(prev);
           alert(res.error || "Failed to remove from liked");
-        } else {
-          loadUserData();
         }
       }).catch(() => {
+        setLiked(prev);
         alert("Failed to remove from liked");
       });
     } else {
       // Optimistic like
+      const prev = liked;
+      setLiked(true);
       addMovieToLiked(movie).then((res) => {
         if (!res.success) {
+          setLiked(prev);
           alert(res.error || "Failed to add to liked");
-        } else {
-          loadUserData();
         }
       }).catch(() => {
+        setLiked(prev);
         alert("Failed to add to liked");
       });
     }
@@ -155,15 +132,9 @@ function Card(props) {
     switch (watchStatus) {
       case "watchLater":
         return {
-          text: "Watch Later",
+          text: "Remove",
           className: "btn-primary",
-          icon: "⏰"
-        };
-      case "watched":
-        return {
-          text: "Watched",
-          className: "btn-primary",
-          icon: "✅"
+          icon: "❌"
         };
       default:
         return {
@@ -227,18 +198,27 @@ function Card(props) {
           >
             {watchButtonProps.icon && typeof watchButtonProps.icon === 'string' ? (
               watchButtonProps.icon
-            ) : watchButtonProps.icon ? (
-              <img src={watchButtonProps.icon} alt="Icon" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
             ) : null}
             {watchButtonProps.text}
           </button>
           <button 
             type="button"
             className="btn-secondary" 
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToLikedList(); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleLiked(); }}
+            style={{
+              background: liked ? "rgba(255, 107, 107, 0.3)" : "rgba(255, 107, 107, 0.1)",
+              color: "#ff6b6b",
+              border: "1px solid rgba(255, 107, 107, 0.3)",
+              padding: "10px 16px",
+              borderRadius: "20px",
+              fontWeight: "600",
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              fontFamily: "'Inter', sans-serif"
+            }}
           >
-            <img src={heart} alt="Heart" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
-            Liked
+            {liked ? "💖 Liked" : "❤️ Like"}
           </button>
         </div>
 
