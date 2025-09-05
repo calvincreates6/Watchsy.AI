@@ -16,6 +16,8 @@ import videoReel from "../../assets/video reel.png";
 import camera from "../../assets/camera.png";
 import checklist from "../../assets/checklist.png";
 import { useUserData } from "../../hooks/useUserData";
+import { useToast } from "../ToastProvider"; // Import useToast
+import { emit, on } from "../../events/bus";
 
 function Content({ searchQuery }) {
   const [movies, setMovies] = useState([]);
@@ -34,7 +36,7 @@ function Content({ searchQuery }) {
   const [castLoading, setCastLoading] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]); // Similar movies
   const [similarLoading, setSimilarLoading] = useState(false);
-  
+
   // Movie status states for overlay buttons
   const [movieLiked, setMovieLiked] = useState(false);
   const [movieWatched, setMovieWatched] = useState(false);
@@ -53,14 +55,30 @@ function Content({ searchQuery }) {
     removeMovieFromWatched,
     addMovieToWatchlist,
     removeMovieFromWatchlist,
-    
   } = useUserData();
-  
+
+  const toast = useToast(); // Initialize useToast
+
+  // Listen to card events to reflect immediately in overlay
+  useEffect(() => {
+    const handleLiked = (e) => {
+      const { movieId, liked } = e.detail || {};
+      if (selectedMovie && String(selectedMovie.id) === String(movieId)) setMovieLiked(!!liked);
+    };
+    const handleWatchlist = (e) => {
+      const { movieId, inWatchlist } = e.detail || {};
+      if (selectedMovie && String(selectedMovie.id) === String(movieId)) setMovieInWatchlist(!!inWatchlist);
+    };
+    const off1 = on('movie:liked', handleLiked);
+    const off2 = on('movie:watchlist', handleWatchlist);
+    return () => { off1(); off2(); };
+  }, [selectedMovie]);
+
   // Movie action functions
   const handleLikeMovie = async () => {
     if (!selectedMovie) return;
-    if (!user) return alert("Please login");
-    
+    if (!user) return toast.info("Please login");
+
     const movie = {
       id: selectedMovie.id,
       title: selectedMovie.title,
@@ -73,38 +91,40 @@ function Content({ searchQuery }) {
     if (isMovieInList(movie.id, 'liked')) {
       // Optimistic unlike
       setMovieLiked(false);
+      emit('movie:liked', { movieId: movie.id, liked: false });
       removeMovieFromLiked(movie.id).then((res) => {
         if (!res.success) {
           setMovieLiked(true);
-          alert(res.error || "Failed to remove from liked");
-        } else {
-          
+          emit('movie:liked', { movieId: movie.id, liked: true });
+          toast.error(res.error || "Failed to remove from liked");
         }
       }).catch(() => {
         setMovieLiked(true);
-        alert("Failed to remove from liked");
+        emit('movie:liked', { movieId: movie.id, liked: true });
+        toast.error("Failed to remove from liked");
       });
     } else {
       // Optimistic like
       setMovieLiked(true);
+      emit('movie:liked', { movieId: movie.id, liked: true });
       addMovieToLiked(movie).then((res) => {
         if (!res.success) {
           setMovieLiked(false);
-          alert(res.error || "Failed to add to liked");
-        } else {
-          
+          emit('movie:liked', { movieId: movie.id, liked: false });
+          toast.error(res.error || "Failed to add to liked");
         }
       }).catch(() => {
         setMovieLiked(false);
-        alert("Failed to add to liked");
+        emit('movie:liked', { movieId: movie.id, liked: false });
+        toast.error("Failed to add to liked");
       });
     }
   };
 
   const handleWatchedMovie = async () => {
     if (!selectedMovie) return;
-    if (!user) return alert("Please login");
-    
+    if (!user) return toast.info("Please login");
+
     const movie = {
       id: selectedMovie.id,
       title: selectedMovie.title,
@@ -115,56 +135,50 @@ function Content({ searchQuery }) {
     };
 
     if (isMovieInList(movie.id, 'watched')) {
-      // Optimistic unwatch
       const prev = movieWatched;
       setMovieWatched(false);
       removeMovieFromWatched(movie.id).then((res) => {
         if (!res.success) {
           setMovieWatched(prev);
-          alert(res.error || "Failed to remove from watched");
-        } else {
-          
+          toast.error(res.error || "Failed to remove from watched");
         }
       }).catch(() => {
         setMovieWatched(prev);
-        alert("Failed to remove from watched");
+        toast.error("Failed to remove from watched");
       });
       return;
     }
 
-    // If movie is in watchlist, remove it first (optimistic)
     if (isMovieInList(movie.id, 'watchlist')) {
       setMovieInWatchlist(false);
+      emit('movie:watchlist', { movieId: movie.id, inWatchlist: false });
       removeMovieFromWatchlist(movie.id).catch(() => {
         setMovieInWatchlist(true);
+        emit('movie:watchlist', { movieId: movie.id, inWatchlist: true });
       });
     }
 
-    // Optimistic mark as watched
     setMovieWatched(true);
     addMovieToWatched(movie).then((res) => {
       if (!res.success) {
         setMovieWatched(false);
-        alert(res.error || "Failed to mark as watched");
-      } else {
-        
+        toast.error(res.error || "Failed to mark as watched");
       }
     }).catch(() => {
       setMovieWatched(false);
-      alert("Failed to mark as watched");
+      toast.error("Failed to mark as watched");
     });
   };
 
   const handleAddToWatchlist = async () => {
     if (!selectedMovie) return;
-    if (!user) return alert("Please login");
-    
-    // Check if movie is already watched
+    if (!user) return toast.info("Please login");
+
     if (isMovieInList(selectedMovie.id, 'watched')) {
-      alert(`${selectedMovie.title} is already marked as watched! Remove it from watched list first if you want to add it to watchlist.`);
+      toast.warn(`${selectedMovie.title} is already marked as watched! Remove it from watched list first if you want to add it to watchlist.`);
       return;
     }
-    
+
     const movie = {
       id: selectedMovie.id,
       title: selectedMovie.title,
@@ -175,32 +189,32 @@ function Content({ searchQuery }) {
     };
 
     if (isMovieInList(movie.id, 'watchlist')) {
-      // Optimistic remove
       setMovieInWatchlist(false);
+      emit('movie:watchlist', { movieId: movie.id, inWatchlist: false });
       removeMovieFromWatchlist(movie.id).then((res) => {
         if (!res.success) {
           setMovieInWatchlist(true);
-          alert(res.error || "Failed to remove from watchlist");
-        } else {
-          
+          emit('movie:watchlist', { movieId: movie.id, inWatchlist: true });
+          toast.error(res.error || "Failed to remove from watchlist");
         }
       }).catch(() => {
         setMovieInWatchlist(true);
-        alert("Failed to remove from watchlist");
+        emit('movie:watchlist', { movieId: movie.id, inWatchlist: true });
+        toast.error("Failed to remove from watchlist");
       });
     } else {
-      // Optimistic add
       setMovieInWatchlist(true);
+      emit('movie:watchlist', { movieId: movie.id, inWatchlist: true });
       addMovieToWatchlist(movie).then((res) => {
         if (!res.success) {
           setMovieInWatchlist(false);
-          alert(res.error || "Failed to add to watchlist");
-        } else {
-          
+          emit('movie:watchlist', { movieId: movie.id, inWatchlist: false });
+          toast.error(res.error || "Failed to add to watchlist");
         }
       }).catch(() => {
         setMovieInWatchlist(false);
-        alert("Failed to add to watchlist");
+        emit('movie:watchlist', { movieId: movie.id, inWatchlist: false });
+        toast.error("Failed to add to watchlist");
       });
     }
   };
@@ -241,15 +255,15 @@ function Content({ searchQuery }) {
   // Handle card click - move clicked card to back
   const handleCardClick = (clickedIndex) => {
     if (animatingCard !== null) return; // Prevent multiple animations
-    
+
     setAnimatingCard(clickedIndex);
-    
+
     // Add animation class to clicked card
     const cardElement = document.querySelector(`[data-card-index="${clickedIndex}"]`);
     if (cardElement) {
       cardElement.classList.add('moving-to-back');
     }
-    
+
     // After animation, reorder cards
     setTimeout(() => {
       setCardOrder(prevOrder => {
@@ -259,7 +273,7 @@ function Content({ searchQuery }) {
         newOrder.push(clickedCard);
         return newOrder;
       });
-      
+
       // Remove animation classes and reset
       setTimeout(() => {
         if (cardElement) {
@@ -294,9 +308,9 @@ function Content({ searchQuery }) {
   const getGenreNames = (genreIds) =>
     genreIds.map((id) => genres[id]).filter(Boolean);
 
-  const closeModal = () => { 
-    setSelectedMovie(null); 
-    setProviders(null); 
+  const closeModal = () => {
+    setSelectedMovie(null);
+    setProviders(null);
     setTrailer(null);
     setCast(null);
     setSimilarMovies([]);
@@ -311,7 +325,7 @@ function Content({ searchQuery }) {
   useEffect(() => {
     const loadMovieData = async () => {
       if (!selectedMovie?.id) return;
-      
+
       // Load providers
       try {
         setProvidersLoading(true);
@@ -383,8 +397,7 @@ function Content({ searchQuery }) {
           </p>
           <div style={hero.ctaSection}>
             <button
-              style={{...hero.primaryButton, width: "150px"}}
-              className="btn-primary"
+              style={hero.primaryButton}
               onMouseEnter={(e) => e.target.style.transform = "translateY(-3px)"}
               onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
               onClick={function(){
@@ -395,16 +408,16 @@ function Content({ searchQuery }) {
                   if (header) {
                     header.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
-                  
+
                   // Focus the search bar with a slight delay to ensure scroll completes
                   setTimeout(() => {
                     searchBar.focus();
                     searchBar.style.border = "2px solid #ffd93d";
                     searchBar.style.boxShadow = "0 0 15px rgba(255, 217, 61, 0.5)";
-                    
+
                     // Add a subtle cursor blink effect
                     searchBar.style.caretColor = "#ffd93d";
-                    
+
                     // Reset the highlight after a few seconds
                     setTimeout(() => {
                       searchBar.style.border = "1px solid gold";
@@ -420,10 +433,9 @@ function Content({ searchQuery }) {
             </button>
             <button
               style={hero.secondaryButton}
-              className="btn-secondary"
               onMouseEnter={(e) => e.target.style.transform = "translateY(-3px)"}
               onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
-              
+
             >
               <img src={checklist} alt="Watchlist" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
               <a href="/watchlist" style={{ textDecoration: "none", color: "inherit" }}>Create Watchlist</a>
@@ -471,7 +483,7 @@ function Content({ searchQuery }) {
                 const movie = heroMovies[movieIndex];
                 const rotation = displayIndex === 0 ? -8 : displayIndex === 1 ? 4 : -2;
                 const animationDelay = displayIndex * 0.3;
-                
+
                 return (
                   <div
                     key={`${movie.id}-${displayIndex}`}
@@ -497,9 +509,9 @@ function Content({ searchQuery }) {
                       }}
                     />
                     <div style={hero.fallbackEmoji} className="fallback-emoji">
-                      <img 
-                        src={movieClapperboard} 
-                        alt="Movie" 
+                      <img
+                        src={movieClapperboard}
+                        alt="Movie"
                         style={{ width: "40px", height: "40px" }}
                       />
                     </div>
@@ -508,8 +520,8 @@ function Content({ searchQuery }) {
                       {movie.vote_average.toFixed(1)}
                     </div>
                     <div style={hero.movieVotes} className="movie-votes">
-                      {movie.vote_count >= 1000 ? 
-                        `${(movie.vote_count / 1000).toFixed(1)}K votes` : 
+                      {movie.vote_count >= 1000 ?
+                        `${(movie.vote_count / 1000).toFixed(1)}K votes` :
                         `${movie.vote_count} votes`
                       }
                     </div>
@@ -656,9 +668,9 @@ function Content({ searchQuery }) {
                   ✕
                 </button>
 
-                <div style={{ 
-                  display: "flex", 
-                  gap: "32px", 
+                <div style={{
+                  display: "flex",
+                  gap: "32px",
                   padding: "32px",
                   flexDirection: window.innerWidth < 768 ? "column" : "row",
                   alignItems: window.innerWidth < 768 ? "center" : "flex-start",
@@ -666,7 +678,7 @@ function Content({ searchQuery }) {
                   maxHeight: "calc(90vh - 100px)"
                 }}>
                   {/* Media Section - Trailer or Poster */}
-                  <div style={{ 
+                  <div style={{
                     flexShrink: 0,
                     width: window.innerWidth < 768 ? "100%" : "450px"
                   }}>
@@ -705,11 +717,11 @@ function Content({ searchQuery }) {
                       <img
                         src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster"}
                         alt={`${selectedMovie.title} poster`}
-                        style={{ 
-                          width: "100%", 
+                        style={{
+                          width: "100%",
                           height: "auto",
                           maxHeight: window.innerWidth < 768 ? "400px" : "500px",
-                          objectFit: "cover", 
+                          objectFit: "cover",
                           borderRadius: "16px",
                           boxShadow: "0 12px 40px rgba(0,0,0,0.4)"
                         }}
@@ -719,9 +731,9 @@ function Content({ searchQuery }) {
 
                   {/* Content Section */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h2 className="content-title" style={{ 
-                      marginTop: 0, 
-                      fontSize: "2.4rem", 
+                    <h2 className="content-title" style={{
+                      marginTop: 0,
+                      fontSize: "2.4rem",
                       marginBottom: "20px",
                       background: "linear-gradient(45deg, #ffd93d, #ff6b6b)",
                       WebkitBackgroundClip: "text",
@@ -734,7 +746,7 @@ function Content({ searchQuery }) {
                     }}>
                       {selectedMovie.title}
                     </h2>
-                    
+
                     {/* Rating Badge */}
                     <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
                       <div style={{
@@ -743,12 +755,12 @@ function Content({ searchQuery }) {
                         gap: "8px",
                         padding: "8px 16px",
                         borderRadius: "25px",
-                        background: selectedMovie.vote_average >= 7.5 ? 
-                          "linear-gradient(90deg,rgba(42, 123, 155, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%)" :
-                          selectedMovie.vote_average >= 6.0 ? 
-                          "linear-gradient(90deg,rgba(5, 0, 77, 1) 0%, rgba(0, 0, 163, 1) 35%, rgba(0, 212, 255, 1) 100%)" :
-                          "linear-gradient(90deg,rgba(131, 58, 180, 1) 0%, rgba(253, 29, 29, 1) 100%)",
-                        color: "#ffffff",
+                        background: selectedMovie.vote_average >= 7.5 ?
+                          "linear-gradient(45deg, #ffd93d, #ffb347)" :
+                          selectedMovie.vote_average >= 6.0 ?
+                          "linear-gradient(45deg, #74b9ff, #0984e3)" :
+                          "linear-gradient(45deg, #fd79a8, #e84393)",
+                        color: "#000",
                         fontWeight: "bold",
                         fontSize: "1rem",
                         boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
@@ -756,8 +768,8 @@ function Content({ searchQuery }) {
                       }}>
                         ⭐ {selectedMovie.vote_average?.toFixed(1)}
                       </div>
-                      <span className="content-body" style={{ 
-                        color: "#b8c5d6", 
+                      <span className="content-body" style={{
+                        color: "#b8c5d6",
                         fontSize: "1.1rem",
                         fontFamily: "'Inter', sans-serif"
                       }}>
@@ -765,9 +777,9 @@ function Content({ searchQuery }) {
                       </span>
                     </div>
 
-                    <p className="content-body" style={{ 
-                      color: "#d1d8e0", 
-                      lineHeight: "1.7", 
+                    <p className="content-body" style={{
+                      color: "#d1d8e0",
+                      lineHeight: "1.7",
                       marginBottom: "24px",
                       fontSize: "1.1rem",
                       fontFamily: "'Inter', sans-serif",
@@ -775,12 +787,12 @@ function Content({ searchQuery }) {
                     }}>
                       {selectedMovie.overview || "No overview available."}
                     </p>
-                    
+
                     {selectedMovie.genre_ids?.length > 0 && (
                       <div style={{ marginBottom: "28px", display: "flex", flexWrap: "wrap", gap: "10px" }}>
                         {getGenreNames(selectedMovie.genre_ids).map((g, index) => (
-                          <span 
-                            key={g} 
+                          <span
+                            key={g}
                             className="genre-tag"
                             style={{
                               background: "rgba(255, 217, 61, 0.1)",
@@ -802,8 +814,8 @@ function Content({ searchQuery }) {
                     {/* Cast Section */}
                     {cast && (
                       <div style={{ marginBottom: "28px" }}>
-                        <h3 className="content-title" style={{ 
-                          fontSize: "1.3rem", 
+                        <h3 className="content-title" style={{
+                          fontSize: "1.3rem",
                           marginBottom: "12px",
                           fontFamily: "'Montserrat', sans-serif",
                           fontWeight: "600"
@@ -831,16 +843,16 @@ function Content({ searchQuery }) {
                                     border: "2px solid rgba(255, 217, 61, 0.3)"
                                   }}
                                 />
-                                <div style={{ 
-                                  fontSize: "0.75rem", 
-                                  color: "#ffd93d", 
+                                <div style={{
+                                  fontSize: "0.75rem",
+                                  color: "#ffd93d",
                                   fontWeight: "600",
                                   fontFamily: "'Inter', sans-serif"
                                 }}>
                                   {person.name}
                                 </div>
-                                <div style={{ 
-                                  fontSize: "0.7rem", 
+                                <div style={{
+                                  fontSize: "0.7rem",
                                   color: "#b8c5d6",
                                   fontFamily: "'Inter', sans-serif"
                                 }}>
@@ -850,7 +862,7 @@ function Content({ searchQuery }) {
                             ))}
                           </div>
                         ) : (
-                          <div className="content-body" style={{ 
+                          <div className="content-body" style={{
                             color: "#b8c5d6",
                             fontFamily: "'Inter', sans-serif"
                           }}>No cast information available.</div>
@@ -860,26 +872,26 @@ function Content({ searchQuery }) {
 
                     {/* Providers section */}
                     <div style={{ marginTop: "12px" }}>
-                                              <h3 className="content-title" style={{ 
-                          fontSize: "1.3rem", 
+                      <h3 className="content-title" style={{
+                          fontSize: "1.3rem",
                           marginBottom: "12px",
                           fontFamily: "'Montserrat', sans-serif",
                           fontWeight: "600"
                         }}><img src={tv} alt="Where to watch" style={{ width: "25px", height: "25px" }} /> Where to watch</h3>
-                                              {providersLoading ? (
-                          <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading providers...</div>
-                        ) : providers ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                          {['flatrate', 'free', 'ads', 'rent', 'buy'].map((key) => (
-                            providers[key]?.length ? (
-                              <div key={key}>
-                                <div className="content-body" style={{ 
-                                  color: "#b8c5d6", 
-                                  marginBottom: "8px", 
-                                  fontWeight: "600",
-                                  fontFamily: "'Inter', sans-serif"
-                                }}>
-                                  {key === 'flatrate' ? (
+                      {providersLoading ? (
+                        <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading providers...</div>
+                      ) : providers ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {['flatrate', 'free', 'ads', 'rent', 'buy'].map((key) => (
+                          providers[key]?.length ? (
+                            <div key={key}>
+                              <div className="content-body" style={{
+                                color: "#b8c5d6",
+                                marginBottom: "8px",
+                                fontWeight: "600",
+                                fontFamily: "'Inter', sans-serif"
+                              }}>
+                                {key === 'flatrate' ? (
   <>
     <img src={reel} alt="Streaming" style={{ width: "25px", height: "25px" }} />
     Streaming
@@ -905,62 +917,62 @@ function Content({ searchQuery }) {
     Buy
   </>
 )}
-                                </div>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                                  {providers[key].map((p) => (
-                                    <div key={p.provider_id} title={p.provider_name} style={{ 
-                                      width: "44px", 
-                                      height: "44px", 
-                                      borderRadius: "10px", 
-                                      overflow: "hidden", 
-                                      background: "#0f131a", 
-                                      display: "flex", 
-                                      alignItems: "center", 
-                                      justifyContent: "center", 
-                                      border: "1px solid rgba(255,255,255,0.15)",
-                                      transition: "transform 0.2s ease",
-                                      cursor: "pointer"
-                                    }}
-                                    onMouseEnter={(e) => e.target.style.transform = "scale(1.1)"}
-                                    onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
-                                    >
-                                      {p.logo_path ? (
-                                        <img src={`https://image.tmdb.org/t/p/w92${p.logo_path}`} alt={p.provider_name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                                      ) : (
-                                        <span style={{ 
-                                          fontSize: "0.7rem", 
-                                          color: "#b8c5d6", 
-                                          padding: "4px", 
-                                          textAlign: "center",
-                                          fontFamily: "'Inter', sans-serif"
-                                        }}>{p.provider_name}</span>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
                               </div>
-                            ) : null
-                          ))}
-                                                      {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
-                              <div className="content-body" style={{ 
-                                color: "#b8c5d6",
-                                fontFamily: "'Inter', sans-serif"
-                              }}>No providers available in your region.</div>
-                            )}
-                        </div>
-                                              ) : (
-                          <div className="content-body" style={{ 
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                                {providers[key].map((p) => (
+                                  <div key={p.provider_id} title={p.provider_name} style={{
+                                    width: "44px",
+                                    height: "44px",
+                                    borderRadius: "10px",
+                                    overflow: "hidden",
+                                    background: "#0f131a",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    border: "1px solid rgba(255,255,255,0.15)",
+                                    transition: "transform 0.2s ease",
+                                    cursor: "pointer"
+                                  }}
+                                  onMouseEnter={(e) => e.target.style.transform = "scale(1.1)"}
+                                  onMouseLeave={(e) => e.target.style.transform = "scale(1)"}
+                                  >
+                                    {p.logo_path ? (
+                                      <img src={`https://image.tmdb.org/t/p/w92${p.logo_path}`} alt={p.provider_name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                                    ) : (
+                                      <span style={{
+                                        fontSize: "0.7rem",
+                                        color: "#b8c5d6",
+                                        padding: "4px",
+                                        textAlign: "center",
+                                        fontFamily: "'Inter', sans-serif"
+                                      }}>{p.provider_name}</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null
+                        ))}
+                        {!['flatrate','free','ads','rent','buy'].some((k) => providers[k]?.length) && (
+                          <div className="content-body" style={{
                             color: "#b8c5d6",
                             fontFamily: "'Inter', sans-serif"
-                          }}>No provider data available.</div>
+                          }}>No providers available in your region.</div>
                         )}
+                      </div>
+                      ) : (
+                        <div className="content-body" style={{
+                          color: "#b8c5d6",
+                          fontFamily: "'Inter', sans-serif"
+                        }}>No provider data available.</div>
+                      )}
                     </div>
 
                     {/* Similar Movies Section */}
                     {similarMovies.length > 0 && (
                       <div style={{ marginTop: "24px" }}>
-                        <h3 className="content-title" style={{ 
-                          fontSize: "1.3rem", 
+                        <h3 className="content-title" style={{
+                          fontSize: "1.3rem",
                           marginBottom: "12px",
                           fontFamily: "'Montserrat', sans-serif",
                           fontWeight: "600"
@@ -993,17 +1005,17 @@ function Content({ searchQuery }) {
                                     boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
                                   }}
                                 />
-                                <div style={{ 
-                                  fontSize: "0.8rem", 
-                                  color: "#f5f6fa", 
-                                  fontWeight: "600", 
+                                <div style={{
+                                  fontSize: "0.8rem",
+                                  color: "#f5f6fa",
+                                  fontWeight: "600",
                                   lineHeight: "1.2",
                                   fontFamily: "'Inter', sans-serif"
                                 }}>
                                   {movie.title}
                                 </div>
-                                <div style={{ 
-                                  fontSize: "0.7rem", 
+                                <div style={{
+                                  fontSize: "0.7rem",
                                   color: "#b8c5d6",
                                   fontFamily: "'Inter', sans-serif"
                                 }}>
@@ -1017,27 +1029,28 @@ function Content({ searchQuery }) {
                     )}
                   </div>
                 </div>
-                
-                <div style={{ 
-                  display: "flex", 
-                  justifyContent: "space-between", 
+
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  gap: "16px", 
+                  gap: "16px",
                   padding: "0 32px 32px",
                   borderTop: "1px solid rgba(255, 217, 61, 0.1)",
                   paddingTop: "24px"
                 }}>
                   {/* User Action Buttons */}
-                  <div style={{ display: "flex", gap: "12px", width: "auto"}}>
-                    <button 
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <button
                       className="btn-secondary"
                       onClick={handleLikeMovie}
                       style={{
+                        width: "100px",
                         background: movieLiked ? "rgba(255, 107, 107, 0.3)" : "rgba(255, 107, 107, 0.1)",
                         color: "#ff6b6b",
                         border: "1px solid rgba(255, 107, 107, 0.3)",
-                        padding: "8px 16px",
-                        borderRadius: "15px",
+                        padding: "16px",
+                        borderRadius: "20px",
                         fontWeight: "600",
                         fontSize: "0.9rem",
                         cursor: "pointer",
@@ -1055,15 +1068,16 @@ function Content({ searchQuery }) {
                     >
                       {movieLiked ? "💖 Liked" : "❤️ Like"}
                     </button>
-                    <button 
+                    <button
                       className="btn-secondary"
                       onClick={handleWatchedMovie}
                       style={{
+                        width: "200px",
                         background: movieWatched ? "rgba(34, 197, 94, 0.3)" : "rgba(34, 197, 94, 0.1)",
                         color: "#22c55e",
                         border: "1px solid rgba(34, 197, 94, 0.3)",
-                        padding: "8px 14px",
-                        borderRadius: "15px",
+                        padding: "16px",
+                        borderRadius: "20px",
                         fontWeight: "600",
                         fontSize: "0.9rem",
                         cursor: "pointer",
@@ -1079,21 +1093,21 @@ function Content({ searchQuery }) {
                         e.target.style.transform = "translateY(0)";
                       }}
                     >
-                      {movieWatched ? "✅ Watched" : "👁️ Mark Watched"}
+                      {movieWatched ? "✅ Watched" : "👁️ Mark as Watched"}
                     </button>
                   </div>
 
                   {/* Add to Watchlist Button */}
-                  <button 
-                    className="btn-primary" 
+                  <button
+                    className="btn-primary"
                     onClick={handleAddToWatchlist}
                     style={{
+                      width: "auto",
                       background: movieInWatchlist ? "linear-gradient(45deg, #ff6b6b, #ff8e8e)" : "linear-gradient(45deg, #ffd93d, #ffb347)",
                       color: movieInWatchlist ? "#fff" : "#000",
-                      width: "auto",
                       border: "none",
                       padding: "14px 28px",
-                      borderRadius: "30px",
+                      borderRadius: "18px",
                       fontWeight: "bold",
                       fontSize: "1.1rem",
                       cursor: "pointer",
@@ -1125,52 +1139,52 @@ function Content({ searchQuery }) {
                     to { opacity: 1; }
                   }
                   @keyframes modalSlideUp {
-                    from { 
-                      opacity: 0; 
-                      transform: translateY(30px) scale(0.95); 
+                    from {
+                      opacity: 0;
+                      transform: translateY(30px) scale(0.95);
                     }
-                    to { 
-                      opacity: 1; 
-                      transform: translateY(0) scale(1); 
+                    to {
+                      opacity: 1;
+                      transform: translateY(0) scale(1);
                     }
                   }
                   @keyframes fadeInUp {
-                    from { 
-                      opacity: 0; 
-                      transform: translateY(20px); 
+                    from {
+                      opacity: 0;
+                      transform: translateY(20px);
                     }
-                    to { 
-                      opacity: 1; 
-                      transform: translateY(0); 
+                    to {
+                      opacity: 1;
+                      transform: translateY(0);
                     }
                   }
-                  
+
                   /* Custom Scrollbar Styles */
                   ::-webkit-scrollbar {
                     width: 8px;
                     height: 8px;
                   }
-                  
+
                   ::-webkit-scrollbar-track {
                     background: rgba(24, 28, 36, 0.3);
                     border-radius: 10px;
                   }
-                  
+
                   ::-webkit-scrollbar-thumb {
                     background: linear-gradient(45deg, #ffd93d, #ffb347);
                     border-radius: 10px;
                     transition: all 0.3s ease;
                   }
-                  
+
                   ::-webkit-scrollbar-thumb:hover {
                     background: linear-gradient(45deg, #ffb347, #ffd93d);
                     box-shadow: 0 2px 8px rgba(255, 217, 61, 0.3);
                   }
-                  
+
                   ::-webkit-scrollbar-corner {
                     background: rgba(24, 28, 36, 0.3);
                   }
-                  
+
                   /* Firefox scrollbar */
                   * {
                     scrollbar-width: thin;
@@ -1185,7 +1199,7 @@ function Content({ searchQuery }) {
         <div style={styles.noResults}>
           <h2 className="content-title">No movies found</h2>
           <p className="content-body">Try searching for a different movie or TV show</p>
-          <button style={hero.secondaryButton} className="btn-secondary" onClick={() => window.location.reload()}>🔄 Clear Search</button>
+          <button style={hero.secondaryButton} onClick={() => window.location.reload()}>🔄 Clear Search</button>
         </div>
       )}
     </div>
@@ -1247,7 +1261,7 @@ const hero = {
     cursor: "pointer",
     border: "2px solid transparent",
     background: "linear-gradient(#181c24, #181c24) padding-box, linear-gradient(to bottom, #a8edea 0%, #fed6e3 100%) border-box",
-    color: "e6edf6",
+    color: "#e6edf6",
     transition: "all 0.3s ease",
   },
   features: { display: "flex", gap: "30px" },
@@ -1354,7 +1368,7 @@ const hero = {
 };
 
 const styles = {
-  container: { padding: "20px" },
+  container: { padding: "20px", minHeight: "100vh", background: "linear-gradient(135deg, #181c24 0%, #232b3b 100%)" },
   searchHeader: { textAlign: "center", marginBottom: "30px" },
   searchTitle: { fontSize: "2rem", fontWeight: "bold" , color: "#f5f6fa"},
   resultCount: { fontSize: "1.1rem", color: "#b8c5d6" },

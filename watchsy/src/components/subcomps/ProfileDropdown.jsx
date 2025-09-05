@@ -146,7 +146,7 @@ function ProfileDropdown() {
   return (
     <div
       className="profile-dropdown-container"
-      style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+      style={{ display: 'flex', alignItems: 'center', gap: '3px' }}
     >
       <img
         src={user?.photoURL || Image}
@@ -154,8 +154,17 @@ function ProfileDropdown() {
         className="profile-image"
         tabIndex={-1}
         aria-hidden="true"
-        style={{ cursor: 'pointer' }}
+        style={{ cursor: 'pointer', borderRadius: '50%', border: '2.5px solid #ffd93d' }}
         onClick={() => navigate("/profile")}
+        referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
+        loading="lazy"
+        decoding="async"
+        onError={(e) => {
+          if (e.currentTarget.dataset.fallbackApplied === 'true') return;
+          e.currentTarget.dataset.fallbackApplied = 'true';
+          e.currentTarget.src = Image;
+        }}
       />
 
       <button

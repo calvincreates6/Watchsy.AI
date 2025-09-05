@@ -142,6 +142,26 @@ function Profile() {
                   src={user.photoURL} 
                   alt="Profile" 
                   style={styles.profileImg}
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const initial = document.createElement('div');
+                    initial.style.width = '100%';
+                    initial.style.height = '100%';
+                    initial.style.display = 'flex';
+                    initial.style.alignItems = 'center';
+                    initial.style.justifyContent = 'center';
+                    initial.style.fontSize = '48px';
+                    initial.style.fontWeight = 'bold';
+                    initial.style.color = '#181c24';
+                    initial.style.background = 'linear-gradient(135deg, #ffd93d, #ffb347)';
+                    initial.textContent = (user.displayName ? user.displayName.charAt(0) : (user.email || '?').charAt(0)).toUpperCase();
+                    e.currentTarget.parentNode.innerHTML = '';
+                    e.currentTarget.parentNode.appendChild(initial);
+                  }}
                 />
               ) : (
                 <div style={styles.profileInitial}>
