@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
 import "./Watchlist.css";
@@ -14,7 +14,9 @@ import AdSlot from "./ads/AdSlot";
 
 export default function Watchlist() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("watchLater"); // "watchLater" or "watched"
+  const [searchParams] = useSearchParams();
+  const qp = (searchParams.get('tab') || '').toLowerCase();
+  const [activeTab, setActiveTab] = useState(qp === 'watched' ? 'watched' : 'watchLater'); // "watchLater" or "watched"
   const navigate = useNavigate();
   const isHero = !searchQuery.trim();
   const toast = useToast();
@@ -72,6 +74,25 @@ export default function Watchlist() {
     }
   };
 
+  const getWatchedTime = (movie) => {
+    const t = movie && movie.watchedAt;
+    if (!t) return 0;
+    if (typeof t === 'number') return t;
+    if (typeof t === 'string') return Date.parse(t) || 0;
+    if (typeof t === 'object') {
+      if (typeof t.seconds === 'number') {
+        const ns = typeof t.nanoseconds === 'number' ? t.nanoseconds : 0;
+        return t.seconds * 1000 + Math.floor(ns / 1e6);
+      }
+      const d = new Date(t);
+      const ms = d.getTime();
+      return isNaN(ms) ? 0 : ms;
+    }
+    return 0;
+  };
+
+  const watchedSorted = (watchedList || []).slice().sort((a, b) => getWatchedTime(b) - getWatchedTime(a));
+
   const totalMovies = (watchlist?.length || 0) + (watchedList?.length || 0);
 
   if (loading || isLoading) {
@@ -121,7 +142,7 @@ export default function Watchlist() {
       <Header onSearch={handleSearch} transparent={isHero} />
       {/* Fixed sidebar ad that uses remaining viewport width; hidden on smaller screens */}
       {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
-        <div style={{ position: 'fixed', right: 15, top: 120, width: 150, zIndex: 2 }}>
+        <div style={{ position: 'fixed', left: 5, top: 120, width: 150, zIndex: 2 }}>
           <AdSlot type="sidebar" label="Sponsored • Deals for movie buffs" style={{ width: 150 }} />
         </div>
       )}
@@ -248,7 +269,7 @@ export default function Watchlist() {
               <p className="empty-message">No movies marked as watched yet. Watch some movies and mark them!</p>
             ) : (
               <div className="watchlist-grid">
-                {watchedList.map((movie) => (
+                {watchedSorted.map((movie) => (
                   <div key={movie.id} className="watchlist-card watched">
                     <img src={movie.poster} alt={movie.title} className="watchlist-poster" />
                     <div className="watchlist-content">
@@ -265,7 +286,7 @@ export default function Watchlist() {
                         {movie.watchedAt && (
                           <span className="watched-date">
                             <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
-                            {new Date(movie.watchedAt).toLocaleDateString()}
+                            {new Date(getWatchedTime(movie)).toLocaleDateString()}
                           </span>
                         )}
                       </div>

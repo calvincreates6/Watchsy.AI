@@ -19,6 +19,7 @@ import { useUserData } from "../../hooks/useUserData";
 import { useToast } from "../ToastProvider"; // Import useToast
 import { emit, on } from "../../events/bus";
 import AdSlot from "../ads/AdSlot";
+import posterFiller from "../../assets/posterFiller.jpg";
 
 function Content({ searchQuery }) {
   const [movies, setMovies] = useState([]);
@@ -596,7 +597,7 @@ function Content({ searchQuery }) {
             {movies.map((movie, idx) => {
               const posterUrl = movie.poster_path
                 ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-                : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
+                : posterFiller;
 
               // Insert one inline ad after ~ every 8 items (first occurrence only)
               if (idx === 8) {
@@ -763,7 +764,7 @@ function Content({ searchQuery }) {
                       </div>
                     ) : (
                       <img
-                        src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster"}
+                        src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : posterFiller}
                         alt={`${selectedMovie.title} poster`}
                         style={{
                           width: "100%",

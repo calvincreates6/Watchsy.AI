@@ -14,6 +14,7 @@ import checklist from "../assets/checklist.png";
 import eye from "../assets/eye.png";
 import star from "../assets/star.png";
 import calendar from "../assets/calendar.png";
+import GenrePieChart from "./subcomps/GenrePieChart";
 
 function Profile() {
     const navigate = useNavigate();
@@ -22,7 +23,8 @@ function Profile() {
     loading, 
     error, 
     userStats, 
-    isLoading
+    isLoading,
+    watchedList
   } = useUserData();
   
   const [animatedStats, setAnimatedStats] = useState({
@@ -188,39 +190,6 @@ function Profile() {
       </div>
 
       <div style={styles.content}>
-        {/* Quick Actions - Moved to top */}
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>QUICK ACTIONS</h2>
-          <div style={styles.quickActions}>
-            <button 
-              className="action-button"
-              style={styles.actionButton}
-              onClick={() => navigate('/')}
-            >
-              <img src={home} alt="Discover" style={styles.actionIcon} />
-              <span style={styles.actionText}>Discover Movies</span>
-            </button>
-            
-            <button 
-              className="action-button"
-              style={styles.actionButton}
-              onClick={() => navigate('/watchlist')}
-            >
-              <img src={checklist} alt="Watchlist" style={styles.actionIcon} />
-              <span style={styles.actionText}>View Watchlist</span>
-            </button>
-            
-            <button 
-              className="action-button"
-              style={styles.actionButton}
-              onClick={() => navigate('/likedlist')}
-            >
-              <img src={heart} alt="Liked" style={styles.actionIcon} />
-              <span style={styles.actionText}>Liked Movies</span>
-            </button>
-          </div>
-        </section>
-
         {/* Movie Stats - Made clickable */}
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>YOUR MOVIE STATS</h2>
@@ -254,6 +223,43 @@ function Profile() {
               <div style={styles.statLabel}>Favorites Saved</div>
               <img src={heart} alt="Liked" style={styles.statIcon} />
             </div>
+          </div>
+
+          <div style={{ marginTop: '18px' }}>
+            <GenrePieChart movies={watchedList} />
+          </div>
+        </section>
+
+        {/* Quick Actions - Moved to top */}
+        <section style={styles.section}>
+          <h2 style={styles.sectionTitle}>QUICK ACTIONS</h2>
+          <div style={styles.quickActions}>
+            <button 
+              className="action-button"
+              style={styles.actionButton}
+              onClick={() => navigate('/')}
+            >
+              <img src={home} alt="Discover" style={styles.actionIcon} />
+              <span style={styles.actionText}>Discover Movies</span>
+            </button>
+            
+            <button 
+              className="action-button"
+              style={styles.actionButton}
+              onClick={() => navigate('/watchlist')}
+            >
+              <img src={checklist} alt="Watchlist" style={styles.actionIcon} />
+              <span style={styles.actionText}>View Watchlist</span>
+            </button>
+            
+            <button 
+              className="action-button"
+              style={styles.actionButton}
+              onClick={() => navigate('/likedlist')}
+            >
+              <img src={heart} alt="Liked" style={styles.actionIcon} />
+              <span style={styles.actionText}>Liked Movies</span>
+            </button>
           </div>
         </section>
 

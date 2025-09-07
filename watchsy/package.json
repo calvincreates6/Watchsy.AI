@@ -6,7 +6,7 @@
     "@tsparticles/all": "^3.8.1",
     "@tsparticles/react": "^3.0.0",
     "axios": "^1.10.0",
-    "bootstrap": "^5.3.7",
+    "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.11.3",
     "cra-template": "1.2.0",
     "firebase": "^11.2.0",

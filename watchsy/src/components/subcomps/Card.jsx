@@ -4,6 +4,7 @@ import star from "../../assets/star.png";
 import { useUserData } from "../../hooks/useUserData";
 import { emit, on } from "../../events/bus";
 import { useToast } from "../ToastProvider";
+import posterFiller from "../../assets/posterFiller.jpg";
 
 function Card(props) {
   let movieId = -1;
@@ -175,7 +176,7 @@ function Card(props) {
     const img = e.target;
     if (img.dataset.fallbackApplied === "true") return; // already swapped
     img.dataset.fallbackApplied = "true";
-    img.src = "https://via.placeholder.com/500x750/1f2733/9fb3c8?text=No+Poster";
+    img.src = posterFiller;
   };
 
   const getWatchButtonProps = () => {

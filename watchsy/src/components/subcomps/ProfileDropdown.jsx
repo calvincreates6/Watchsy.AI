@@ -14,6 +14,7 @@ import home from "../../assets/home.png";
 import checklist from "../../assets/checklist.png";
 import blueBird from "../../assets/blue bird.png";
 import ConfirmModal from "../ConfirmModal";
+import { deriveSlug } from "../../utils/slug";
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,6 +24,20 @@ function ProfileDropdown() {
   const navigate = useNavigate();
   const [user] = useAuthState(auth);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [slug, setSlug] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (user?.uid) {
+        const s = await deriveSlug(user.uid);
+        if (active) setSlug(s);
+      } else {
+        setSlug('me');
+      }
+    })();
+    return () => { active = false; };
+  }, [user]);
 
   // Logout with Firebase
   const handleLogout = async () => {
@@ -114,20 +129,20 @@ function ProfileDropdown() {
         </a>
       </li>
       <li>
-        <a href="/watchlist" tabIndex={0} role="menuitem">
+        <a href={`/${slug}/watchlist`} tabIndex={0} role="menuitem">
           <img src={checklist} alt="Watchlist" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           Watchlist
         </a>
       </li>
       <li>
-        <a href="/likedlist" tabIndex={0} role="menuitem">
+        <a href={`/${slug}/likedlist`} tabIndex={0} role="menuitem">
           <img src={heart} alt="Liked" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           Liked Movies
         </a>
       </li>
       <li>
-        <a href="#" tabIndex={0} role="menuitem" onClick={handleShare}>
-          <img src={blueBird} alt="Share" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+        <a href="/share" tabIndex={0} role="menuitem">
+          <img src={castAndCrew} alt="Share" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           Share with Friends
         </a>
       </li>
@@ -148,6 +163,7 @@ function ProfileDropdown() {
       className="profile-dropdown-container"
       style={{ display: 'flex', alignItems: 'center', gap: '3px' }}
     >
+      <a href="/profile" draggable={true}>
       <img
         src={user?.photoURL || Image}
         alt="Profile"
@@ -165,7 +181,8 @@ function ProfileDropdown() {
           e.currentTarget.dataset.fallbackApplied = 'true';
           e.currentTarget.src = Image;
         }}
-      />
+        />
+      </a>
 
       <button
         className={`dropdown-arrow-btn${isOpen ? ' open' : ''}`}

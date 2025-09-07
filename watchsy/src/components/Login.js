@@ -181,7 +181,7 @@ const Login = () => {
                   type="button"
                   onClick={showEmailFormHandler}
                   style={styles.emailBtn}
-                  className="email-btn btn-primary"
+                  className="email-btn"
                 >
                   Continue with Email
                 </button>
@@ -190,7 +190,7 @@ const Login = () => {
                   type="button"
                   onClick={googleHandleLogin}
                   style={styles.googleBtn}
-                  className="google-btn btn-secondary"
+                  className="google-btn"
                   disabled={isLoading}
                 >
                   {/* Google SVG */}
@@ -270,7 +270,7 @@ const Login = () => {
                   <button
                     type="submit"
                     style={styles.submitBtn}
-                    className="submit-btn btn-primary"
+                    className="submit-btn"
                     disabled={!email.trim() || !password.trim() || (isSignUp && !confirmPassword.trim()) || isLoading}
                   >
                     {isLoading ? "Loading..." : (isSignUp ? "Create Account" : "Sign In")}

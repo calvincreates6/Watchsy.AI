@@ -122,7 +122,6 @@ h1, h2, h3, h4, h5, h6 {
 .logo-text {
   font-family: var(--font-display);
   font-weight: var(--weight-black);
-  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 

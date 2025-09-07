@@ -9,6 +9,7 @@ import Watchlist from "./components/Watchlist";
 import LikedList from "./components/LikedList";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { ToastProvider } from "./components/ToastProvider";
+import SharePage from "./components/SharePage";
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -73,19 +74,30 @@ function App() {
               <Homepage />
             </ProtectedRoute>
           } />
-          <Route path="/profile" element={
+          <Route path="/search/:query" element={
             <ProtectedRoute>
-              <Profile />
+              <Homepage />
             </ProtectedRoute>
           } />
-          <Route path="/watchlist" element={
+          <Route path=":" element={<Navigate to="/" replace />} />
+          <Route path=":slug/watchlist" element={
             <ProtectedRoute>
               <Watchlist />
             </ProtectedRoute>
           } />
-          <Route path="/likedlist" element={
+          <Route path=":slug/likedlist" element={
             <ProtectedRoute>
               <LikedList />
+            </ProtectedRoute>
+          } />
+          <Route path="/share" element={
+            <ProtectedRoute>
+              <SharePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
