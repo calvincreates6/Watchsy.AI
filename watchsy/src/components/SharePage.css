@@ -1,3 +1,6 @@
+/* === Share With Friends Page CSS === */
+
+/* Page container and content */
 .share-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #181c24 0%, #232b3b 100%);
@@ -10,24 +13,37 @@
   padding: 0 16px;
 }
 
+/* Grid */
 .share-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 18px;
 }
 
+/* Card */
 .share-card {
-  background: linear-gradient(45deg, #ffffff 0%, #666666 100%);
-  /* border: 1px solid rgba(255,255,255,0.08); */
-  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(28,32,45,0.95) 0%, rgba(18,22,35,0.95) 100%);
+  border-radius: 18px;
   padding: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
+.share-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 26px rgba(0,0,0,0.55), 0 0 12px rgba(138,43,226,0.4);
+}
+
+/* Card top bar */
 .share-cardTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .share-titleRow {
@@ -41,16 +57,18 @@
   height: 25px;
 }
 
+/* Privacy pill (keeps your color scheme) */
 .share-privacyPill {
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  text-transform: capitalize;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
-.share-privacyPill.is-public { background: rgba(34,197,94,0.2); color: #22c55e; }
-.share-privacyPill.is-link { background: rgba(255,217,61,0.15); color: #ffd93d; }
-.share-privacyPill.is-private { background: rgba(239,68,68,0.2); color: #ef4444; }
+.share-privacyPill.is-private { background: rgba(255, 77, 77, 0.15); border: 1px solid rgba(255, 77, 77, 0.4); color: #ff4d4d; box-shadow: 0 0 8px rgba(255, 77, 77, 0.4); }
+.share-privacyPill.is-public  { background: rgba(67, 233, 123, 0.15); border: 1px solid rgba(67, 233, 123, 0.4); color: #43e97b; box-shadow: 0 0 8px rgba(67, 233, 123, 0.4); }
+.share-privacyPill.is-link    { background: rgba(255, 217, 61, 0.15); border: 1px solid rgba(255, 217, 61, 0.35); color: #ffd93d; box-shadow: 0 0 8px rgba(255, 217, 61, 0.35); }
 
+/* Kebab and menu */
 .share-kebabBtn {
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.12);
@@ -83,6 +101,7 @@
   cursor: pointer;
 }
 
+/* Preview posters */
 .share-previewRow {
   display: flex;
   gap: 8px;
@@ -102,70 +121,98 @@
 
 .share-noPreview { color: #a0a4ae; font-style: italic; }
 
+/* Link row */
 .share-linkRow {
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
+/* Link Input Field */
 .share-linkInput {
   width: 100%;
-  background: #0f1320;
-  color: #eaeaea;
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(20, 24, 35, 0.85);
+  color: #f1f1f1;
+  border: 1px solid rgba(138,43,226,0.35); /* purple border */
   border-radius: 12px;
   padding: 12px 14px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
+/* Copy Button */
 .share-copyBtn {
-  background: #111;
+  background: linear-gradient(90deg, #ff758c 0%, #ff7eb3 100%);
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.2);
+  border: none;
   border-radius: 12px;
   padding: 12px 18px;
   cursor: pointer;
   font-weight: 700;
   min-width: 84px;
   text-align: center;
+  transition: transform 0.2s ease;
+}
+.share-copyBtn:hover {
+  transform: scale(1.05);
 }
 
+/* QR Container */
 .share-qrWrap {
-  padding: 8px;
-  border-radius: 12px;
-  background: #0b0f19;
-  border: 1px solid rgba(255,255,255,0.12);
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.1);
 }
-
 .share-qr { width: 72px; height: 72px; display: block; object-fit: contain; }
 
+/* Social row + buttons */
 .share-shareRow {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 10px;
   align-items: center;
   justify-content: center;
+  margin-top: 10px;
 }
 
 .share-shareBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 10px;
   padding: 10px 14px;
   height: 42px;
   min-width: 100px;
-  border-radius: 999px;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px dashed white;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  color: #fff;
   text-decoration: none;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-  transition: transform 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.share-shareBtn.btn-light { background: linear-gradient(90deg, #efd5ff 0%, #515ada 100%); color: white; }
-.share-shareBtn.btn-dark { background: linear-gradient(45deg, #00C9FF 0%, #92FE9D 100%); color: white;}
+/* Social Share Buttons */
+.share-shareBtn.btn-light {
+  background: linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%);
+  color: #fff;
+}
+.share-shareBtn.btn-dark {
+  background: linear-gradient(45deg, #43e97b 0%, #38f9d7 100%);
+  color: #fff;
+}
+.share-shareBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35), 0 0 10px rgba(255,255,255,0.3);
+}
 
+/* Toast */
 .share-toast {
   position: fixed;
   left: 50%;
@@ -180,4 +227,5 @@
   z-index: 9999;
 }
 
-.share-icon { font-size: 16px; margin-right: 8px; } 
+/* Icon helper */
+.share-icon { font-size: 16px; margin-right: 8px; }
