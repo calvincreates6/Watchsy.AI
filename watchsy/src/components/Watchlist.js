@@ -1,79 +1,126 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Header from "./subcomps/Header";
 import Footer from "./subcomps/Footer";
 import "./Watchlist.css";
+import clock from "../assets/clock.png";
+import eye from "../assets/eye.png";
+import star from "../assets/star.png";
+import checklist from "../assets/checklist.png";
+import calendar from "../assets/calendar.png";
+import { useUserData } from "../hooks/useUserData";
+import { useToast } from "./ToastProvider";
+import AdSlot from "./ads/AdSlot";
 
 export default function Watchlist() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("watchLater"); // "watchLater" or "watched"
+  const [searchParams] = useSearchParams();
+  const qp = (searchParams.get('tab') || '').toLowerCase();
+  const [activeTab, setActiveTab] = useState(qp === 'watched' ? 'watched' : 'watchLater'); // "watchLater" or "watched"
   const navigate = useNavigate();
   const isHero = !searchQuery.trim();
-  const [watchlist, setWatchlist] = useState([]);
-  const [watchedList, setWatchedList] = useState([]);
+  const toast = useToast();
 
-  useEffect(() => {
-    // Load both lists from localStorage on component mount
-    const savedWatchlist = localStorage.getItem("watchlist") || "[]";
-    const savedWatchedList = localStorage.getItem("watchedList") || "[]";
-    
-    setWatchlist(JSON.parse(savedWatchlist));
-    setWatchedList(JSON.parse(savedWatchedList));
-  }, []);
+  const {
+    user,
+    loading,
+    isLoading,
+    watchlist,
+    watchedList,
+    addMovieToWatched,
+    addMovieToWatchlist,
+    removeMovieFromWatchlist,
+    removeMovieFromWatched,
+    isMovieInList,
+  } = useUserData();
 
   const handleSearch = (query) => {
     if (query.trim()) {
-      // Redirect to home page with search query
       navigate(`/?search=${encodeURIComponent(query.trim())}`);
     }
   };
 
-  const removeFromWatchlist = (movieId) => {
-    const updatedWatchlist = watchlist.filter(movie => movie.id !== movieId);
-    setWatchlist(updatedWatchlist);
-    localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-  };
-
-  const removeFromWatched = (movieId) => {
-    const updatedWatchedList = watchedList.filter(movie => movie.id !== movieId);
-    setWatchedList(updatedWatchedList);
-    localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
-  };
-
-  const moveToWatched = (movieId) => {
+  const moveToWatched = async (movieId) => {
+    if (!user) return toast.info("Please login");
     const movie = watchlist.find(m => m.id === movieId);
-    if (movie) {
-      // Remove from watchlist
-      const updatedWatchlist = watchlist.filter(m => m.id !== movieId);
-      setWatchlist(updatedWatchlist);
-      localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
-      
-      // Add to watched list
-      const movieWithWatchedDate = { ...movie, watchedAt: new Date().toISOString() };
-      const updatedWatchedList = [...watchedList, movieWithWatchedDate];
-      setWatchedList(updatedWatchedList);
-      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
+    if (!movie) return;
+    if (isMovieInList(movie.id, 'watched')) {
+      await removeMovieFromWatchlist(movie.id);
+      return;
+    }
+    const added = await addMovieToWatched(movie);
+    if (added.success) {
+      await removeMovieFromWatchlist(movie.id);
+      toast.success(`${movie.title} marked as watched`);
+    } else if (added.error) {
+      toast.error(added.error);
     }
   };
 
-  const moveToWatchlist = (movieId) => {
+  const moveToWatchlist = async (movieId) => {
+    if (!user) return toast.info("Please login");
     const movie = watchedList.find(m => m.id === movieId);
-    if (movie) {
-      // Remove from watched list
-      const updatedWatchedList = watchedList.filter(m => m.id !== movieId);
-      setWatchedList(updatedWatchedList);
-      localStorage.setItem("watchedList", JSON.stringify(updatedWatchedList));
-      
-      // Add back to watchlist
-      const movieWithAddedDate = { ...movie, addedAt: new Date().toISOString() };
-      delete movieWithAddedDate.watchedAt; // Remove watched date
-      const updatedWatchlist = [...watchlist, movieWithAddedDate];
-      setWatchlist(updatedWatchlist);
-      localStorage.setItem("watchlist", JSON.stringify(updatedWatchlist));
+    if (!movie) return;
+    if (isMovieInList(movie.id, 'watchlist')) {
+      await removeMovieFromWatched(movie.id);
+      return;
+    }
+    const added = await addMovieToWatchlist(movie);
+    if (added.success) {
+      await removeMovieFromWatched(movie.id);
+      toast.success(`${movie.title} moved back to Watch Later`);
+    } else if (added.error) {
+      toast.error(added.error);
     }
   };
 
-  const totalMovies = watchlist.length + watchedList.length;
+  const getWatchedTime = (movie) => {
+    const t = movie && movie.watchedAt;
+    if (!t) return 0;
+    if (typeof t === 'number') return t;
+    if (typeof t === 'string') return Date.parse(t) || 0;
+    if (typeof t === 'object') {
+      if (typeof t.seconds === 'number') {
+        const ns = typeof t.nanoseconds === 'number' ? t.nanoseconds : 0;
+        return t.seconds * 1000 + Math.floor(ns / 1e6);
+      }
+      const d = new Date(t);
+      const ms = d.getTime();
+      return isNaN(ms) ? 0 : ms;
+    }
+    return 0;
+  };
+
+  const watchedSorted = (watchedList || []).slice().sort((a, b) => getWatchedTime(b) - getWatchedTime(a));
+
+  const totalMovies = (watchlist?.length || 0) + (watchedList?.length || 0);
+
+  if (loading || isLoading) {
+    return (
+      <>
+        <Header onSearch={handleSearch} transparent={isHero} />
+        <div className="watchlist-container">
+          <div className="watchlist-header"><h1>Loading...</h1></div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Header onSearch={handleSearch} transparent={isHero} />
+        <div className="watchlist-container">
+          <div className="watchlist-header">
+            <h1>My Lists</h1>
+            <p>Please login to view your lists.</p>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   if (totalMovies === 0) {
     return (
@@ -93,6 +140,12 @@ export default function Watchlist() {
   return (
     <>
       <Header onSearch={handleSearch} transparent={isHero} />
+      {/* Fixed sidebar ad that uses remaining viewport width; hidden on smaller screens */}
+      {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
+        <div style={{ position: 'fixed', left: 5, top: 120, width: 150, zIndex: 2 }}>
+          <AdSlot type="sidebar" label="Sponsored • Deals for movie buffs" style={{ width: 150 }} />
+        </div>
+      )}
       <div className="watchlist-container">
         <div className="watchlist-header">
           <h1>My Lists</h1>
@@ -105,16 +158,18 @@ export default function Watchlist() {
             className={`toggle-btn ${activeTab === "watchLater" ? "active" : ""}`}
             onClick={() => setActiveTab("watchLater")}
           >
-            ⏰ Watch Later ({watchlist.length})
+            <img src={checklist} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+            Watch Later ({watchlist.length})
           </button>
           <button 
             className={`toggle-btn ${activeTab === "watched" ? "active" : ""}`}
             onClick={() => setActiveTab("watched")}
           >
-            ✅ Already Watched ({watchedList.length})
+            <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "16px" }} />
+            Already Watched ({watchedList.length})
           </button>
 
-          <button className="add-list-btn" onClick={() => alert("customizable lists coming soon!")}>
+          <button className="add-list-btn" onClick={() => toast.info("customizable lists coming soon!")}> 
             <span><svg
   xmlns="http://www.w3.org/2000/svg"
   x="0px"
@@ -152,7 +207,10 @@ export default function Watchlist() {
         {/* Watch Later Section */}
         {activeTab === "watchLater" && (
           <div className="list-section">
-            <h2>⏰ Watch Later</h2>
+            <h2>
+              <img src={checklist} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Watch Later
+            </h2>
             {watchlist.length === 0 ? (
               <p className="empty-message">No movies in your watch later list. Start adding movies!</p>
             ) : (
@@ -163,8 +221,14 @@ export default function Watchlist() {
                     <div className="watchlist-content">
                       <h3 className="watchlist-title">{movie.title}</h3>
                       <div className="watchlist-info">
-                        <span className="rating">⭐ {movie.rating.toFixed(1)}</span>
-                        <span className="year">📅 {movie.year}</span>
+                        <span className="rating">
+                          <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {typeof movie.rating === 'number' ? movie.rating.toFixed(1) : movie.rating}
+                        </span>
+                        <span className="year">
+                          <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {movie.year}
+                        </span>
                       </div>
                       <div className="watchlist-genres">
                         {movie.genres?.map((genre, idx) => (
@@ -176,11 +240,12 @@ export default function Watchlist() {
                           className="btn-primary"
                           onClick={() => moveToWatched(movie.id)}
                         >
-                          ✅ Mark as Watched
+                          <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+                          Mark as Watched
                         </button>
                         <button 
                           className="btn-secondary"
-                          onClick={() => removeFromWatchlist(movie.id)}
+                          onClick={() => removeMovieFromWatchlist(movie.id)}
                         >
                           ❌ Remove
                         </button>
@@ -196,21 +261,33 @@ export default function Watchlist() {
         {/* Already Watched Section */}
         {activeTab === "watched" && (
           <div className="list-section">
-            <h2>✅ Already Watched</h2>
+            <h2>
+              <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+              Already Watched
+            </h2>
             {watchedList.length === 0 ? (
               <p className="empty-message">No movies marked as watched yet. Watch some movies and mark them!</p>
             ) : (
               <div className="watchlist-grid">
-                {watchedList.map((movie) => (
+                {watchedSorted.map((movie) => (
                   <div key={movie.id} className="watchlist-card watched">
                     <img src={movie.poster} alt={movie.title} className="watchlist-poster" />
                     <div className="watchlist-content">
                       <h3 className="watchlist-title">{movie.title}</h3>
                       <div className="watchlist-info">
-                        <span className="rating">⭐ {movie.rating.toFixed(1)}</span>
-                        <span className="year">📅 {movie.year}</span>
+                        <span className="rating">
+                          <img src={star} alt="Rating" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {typeof movie.rating === 'number' ? movie.rating.toFixed(1) : movie.rating}
+                        </span>
+                        <span className="year">
+                          <img src={calendar} alt="Year" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                          {movie.year}
+                        </span>
                         {movie.watchedAt && (
-                          <span className="watched-date">👁️ {new Date(movie.watchedAt).toLocaleDateString()}</span>
+                          <span className="watched-date">
+                            <img src={eye} alt="Watched" style={{ width: "25px", height: "25px", marginRight: "4px" }} />
+                            {new Date(getWatchedTime(movie)).toLocaleDateString()}
+                          </span>
                         )}
                       </div>
                       <div className="watchlist-genres">
@@ -223,11 +300,12 @@ export default function Watchlist() {
                           className="btn-primary"
                           onClick={() => moveToWatchlist(movie.id)}
                         >
-                          ⏰ Move to Watch Later
+                          <img src={clock} alt="Watch Later" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
+                          Move to Watch Later
                         </button>
                         <button 
                           className="btn-secondary"
-                          onClick={() => removeFromWatched(movie.id)}
+                          onClick={() => removeMovieFromWatched(movie.id)}
                         >
                           ❌ Remove
                         </button>

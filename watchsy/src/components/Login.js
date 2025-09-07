@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import "react-phone-input-2/lib/style.css";
 import websiteLogo from "../assets/watchsy.jpg";
 import "../App.css";
+import eye from "../assets/eye.png";
+import hide from "../assets/hiding eyes monkey.png";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -17,15 +19,19 @@ const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const googleprovider = new GoogleAuthProvider();
 
   const showEmailFormHandler = () => setShowEmailForm(true);
+  
+
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -54,6 +60,13 @@ const Login = () => {
         setIsLoading(false);
       }
     } else {
+      // Validate passwords match for signup
+      if (password !== confirmPassword) {
+        setError("Passwords do not match. Please try again.");
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         const userCredential = await createUserWithEmailAndPassword(
           authInstance,
@@ -104,13 +117,18 @@ const Login = () => {
     }
   };
 
-  const btnSwap = () => setIsSignUp(true);
+  const btnSwap = () => {
+    setIsSignUp(!isSignUp);
+    setConfirmPassword(""); // Clear confirm password when switching modes
+    setError(""); // Clear any previous errors
+  };
 
   const goBack = () => {
     setShowEmailForm(false);
     setError("");
     setEmail("");
     setPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -163,7 +181,7 @@ const Login = () => {
                   type="button"
                   onClick={showEmailFormHandler}
                   style={styles.emailBtn}
-                  className="email-btn btn-primary"
+                  className="email-btn"
                 >
                   Continue with Email
                 </button>
@@ -172,7 +190,7 @@ const Login = () => {
                   type="button"
                   onClick={googleHandleLogin}
                   style={styles.googleBtn}
-                  className="google-btn btn-secondary"
+                  className="google-btn"
                   disabled={isLoading}
                 >
                   {/* Google SVG */}
@@ -218,17 +236,42 @@ const Login = () => {
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       className="password-toggle"
                     >
-                      {showPassword ? "🙈" : "👁️"}
+                      <img src={showPassword ? hide : eye} alt="Toggle password" style={{ width: "25px", height: "25px" }} />
                     </button>
                   </div>
+
+                  {isSignUp && (
+                    <div style={styles.inputContainer}>
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm Password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required={isSignUp}
+                        style={styles.input}
+                        className="input-focus form-input"
+                        aria-label="Confirm password"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        style={styles.passwordToggle}
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                        className="password-toggle"
+                      >
+                        <img src={showConfirmPassword ? hide : eye} alt="Toggle confirm password" style={{ width: "25px", height: "25px" }} />
+                      </button>
+                    </div>
+                  )}
 
                   {error && <div style={styles.error}>{error}</div>}
 
                   <button
                     type="submit"
                     style={styles.submitBtn}
-                    className="submit-btn btn-primary"
-                    disabled={!email.trim() || !password.trim() || isLoading}
+                    className="submit-btn"
+                    disabled={!email.trim() || !password.trim() || (isSignUp && !confirmPassword.trim()) || isLoading}
                   >
                     {isLoading ? "Loading..." : (isSignUp ? "Create Account" : "Sign In")}
                   </button>
@@ -426,6 +469,9 @@ const styles = {
     fontSize: "18px",
     userSelect: "none",
     transition: "opacity 0.3s ease",
+    border: "2px solid #333a4d",
+    borderRadius: "50%",
+    padding: "3px 4px",
   },
   submitBtn: { 
     padding: "18px 24px", 

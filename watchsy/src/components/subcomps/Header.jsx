@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProfileDropdown from "./ProfileDropdown";
+import search from "../../assets/search.png";
+import AI from "./AI";
 
 function Header({ onSearch, transparent = false }) {
   const [query, setQuery] = useState("");
@@ -59,10 +61,9 @@ function Header({ onSearch, transparent = false }) {
         <div
           className="d-flex align-items-center"
           style={{ minWidth: "240px", cursor: "pointer" }}
-          onClick={() => {
-            window.location.href = "/";
-          }}
+          draggable="true"
         >
+          <a href="/" tabIndex={0} role="logo">
           {/* SVG goes here */}
           <svg
             width="250"
@@ -147,38 +148,17 @@ function Header({ onSearch, transparent = false }) {
             </g>
             <text
               x="80"
-              y="45"
+              y="62"
               fill="url(#textGradient)"
               fontFamily="Orbitron, Arial, sans-serif"
-              fontSize="28"
+              fontSize="42"
               fontWeight="900"
               className="logo-text"
             >
               Watchsy
             </text>
-            <text
-              x="80"
-              y="60"
-              fill="#f5f6fa"
-              fontFamily="Righteous, Arial, sans-serif"
-              fontSize="12"
-              letterSpacing="1"
-              className="brand-tagline"
-            >
-              track what you watch
-            </text>
-            <text
-              x="80"
-              y="72"
-              fill="#f5f6fa"
-              fontFamily="Righteous, Arial, sans-serif"
-              fontSize="12"
-              letterSpacing="1"
-              className="brand-tagline"
-            >
-              share what you love!
-            </text>
           </svg>
+          </a>
         </div>
 
         {/* Search Bar */}
@@ -188,14 +168,13 @@ function Header({ onSearch, transparent = false }) {
               id="my-search-bar"
               type="search"
               className="form-control form-input"
-              placeholder="Search for movies, series..."
               aria-label="Search for movies and TV shows"
               value={query}
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               style={{
                 backgroundColor: "#181c24",
-                color: "#f5f6fa",
+                color: "white",
                 border: "1px solid gold",
                 borderRadius: "25px",
                 padding: "10px 20px",
@@ -207,13 +186,17 @@ function Header({ onSearch, transparent = false }) {
             className="search-button"
               type="submit"
             >
+              <img src={search} alt="Search" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
               Search
             </button>
+            <div style={{ marginLeft: '8px' }}>
+              <AI />
+            </div>
           </form>
         </div>
 
-        {/* Profile */}
-        <div style={{ paddingRight: "0px", marginLeft: "auto" }}>
+        {/* Actions: Profile */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
           <ProfileDropdown />
         </div>
       </div>

@@ -3,8 +3,18 @@ import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth"; // ⬅️ import Firebase signOut
 import { auth } from "../../firebaseConfig"; // ⬅️ import your Firebase auth instance
+import { useAuthState } from "react-firebase-hooks/auth";
 import Image from "../../assets/watchsy.jpg";
 import "./ProfileDropdown.css";
+import movieClapperboard from "../../assets/movie clapperboard.png";
+import heart from "../../assets/heart.png";
+import castAndCrew from "../../assets/cast and crew.png";
+import clock from "../../assets/watchlater clock.png";
+import home from "../../assets/home.png";
+import checklist from "../../assets/checklist.png";
+import blueBird from "../../assets/blue bird.png";
+import ConfirmModal from "../ConfirmModal";
+import { deriveSlug } from "../../utils/slug";
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,16 +22,35 @@ function ProfileDropdown() {
   const buttonRef = useRef();
   const [dropdownStyle, setDropdownStyle] = useState({});
   const navigate = useNavigate();
+  const [user] = useAuthState(auth);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [slug, setSlug] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (user?.uid) {
+        const s = await deriveSlug(user.uid);
+        if (active) setSlug(s);
+      } else {
+        setSlug('me');
+      }
+    })();
+    return () => { active = false; };
+  }, [user]);
 
   // Logout with Firebase
   const handleLogout = async () => {
     try {
-      await signOut(auth);
-      console.log("User signed out successfully.");
-      navigate("/login"); // Redirect to login page
+      setConfirmOpen(true);
     } catch (error) {
       console.error("Logout failed:", error.message);
     }
+  };
+
+  const handleShare = () => {
+    // navigator.clipboard.writeText("https://www.watchsy.com");
+    alert("Sharing Feature Coming Soon!");
   };
 
   // Close dropdown on outside click or Escape
@@ -93,10 +122,30 @@ function ProfileDropdown() {
       aria-label="Profile options"
       style={dropdownStyle}
     >
-      <li><a href="/" tabIndex={0} role="menuitem">Home</a></li>
-      <li><a href="/watchlist" tabIndex={0} role="menuitem">Watchlist</a></li>
-      <li><a href="/likedlist" tabIndex={0} role="menuitem">Liked Movies</a></li>
-      <li><a href="#" tabIndex={0} role="menuitem">Share with Friends</a></li>
+      <li>
+        <a href="/" tabIndex={0} role="menuitem">
+          <img src={home} alt="Home" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Home
+        </a>
+      </li>
+      <li>
+        <a href={`/${slug}/watchlist`} tabIndex={0} role="menuitem">
+          <img src={checklist} alt="Watchlist" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Watchlist
+        </a>
+      </li>
+      <li>
+        <a href={`/${slug}/likedlist`} tabIndex={0} role="menuitem">
+          <img src={heart} alt="Liked" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Liked Movies
+        </a>
+      </li>
+      <li>
+        <a href="/share" tabIndex={0} role="menuitem">
+          <img src={castAndCrew} alt="Share" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Share with Friends
+        </a>
+      </li>
       <li>
         <button 
           onClick={handleLogout} 
@@ -112,16 +161,28 @@ function ProfileDropdown() {
   return (
     <div
       className="profile-dropdown-container"
-      style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+      style={{ display: 'flex', alignItems: 'center', gap: '3px' }}
     >
+      <a href="/profile" draggable={true}>
       <img
-        src={Image}
+        src={user?.photoURL || Image}
         alt="Profile"
         className="profile-image"
         tabIndex={-1}
         aria-hidden="true"
-        style={{ cursor: 'default' }}
-      />
+        style={{ cursor: 'pointer', borderRadius: '50%', border: '2.5px solid #ffd93d' }}
+        onClick={() => navigate("/profile")}
+        referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
+        loading="lazy"
+        decoding="async"
+        onError={(e) => {
+          if (e.currentTarget.dataset.fallbackApplied === 'true') return;
+          e.currentTarget.dataset.fallbackApplied = 'true';
+          e.currentTarget.src = Image;
+        }}
+        />
+      </a>
 
       <button
         className={`dropdown-arrow-btn${isOpen ? ' open' : ''}`}
@@ -166,6 +227,21 @@ function ProfileDropdown() {
       </button>
 
       {isOpen && ReactDOM.createPortal(dropdownMenu, document.body)}
+      <ConfirmModal
+        open={confirmOpen}
+        title="Sign out?"
+        description="You'll be returned to the login screen."
+        confirmText="Sign out"
+        cancelText="Cancel"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={async () => {
+          setConfirmOpen(false);
+          try {
+            await signOut(auth);
+            navigate("/login");
+          } catch (e) {}
+        }}
+      />
     </div>
   );
 }

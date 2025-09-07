@@ -1,4 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import movieClapperboard from "../../assets/movie clapperboard.png";
+import home from "../../assets/home.png";
+import blueBird from "../../assets/blue bird.png";
+import camera from "../../assets/camera.png";
+import videoReel from "../../assets/video reel.png";
 
 function Footer() {
   return (
@@ -6,7 +11,7 @@ function Footer() {
       <div style={styles.container}>
         <div style={styles.brandSection}>
           <div style={styles.logoRow}>
-            <span style={styles.logoIcon}>🎬</span>
+            <img src={home} alt="Home" style={{ width: "25px", height: "25px" }} />
             <span style={styles.brand} className="logo-text">Watchsy</span>
           </div>
           <p style={styles.tagline} className="brand-tagline">Track what you watch. Share what you love.</p>
@@ -36,9 +41,15 @@ function Footer() {
         <div style={styles.socialSection}>
           <h4 style={styles.heading} className="content-title">Follow</h4>
           <div style={styles.socialRow}>
-            <a style={styles.social} href="#" aria-label="Twitter">🐦</a>
-            <a style={styles.social} href="#" aria-label="Instagram">📷</a>
-            <a style={styles.social} href="#" aria-label="YouTube">▶️</a>
+            <a style={styles.social} href="#" aria-label="Twitter">
+              <img src={blueBird} alt="Twitter" style={{ width: "25px", height: "25px" }} />
+            </a>
+            <a style={styles.social} href="#" aria-label="Instagram">
+              <img src={camera} alt="Instagram" style={{ width: "25px", height: "25px" }} />
+            </a>
+            <a style={styles.social} href="#" aria-label="YouTube">
+              <img src={videoReel} alt="YouTube" style={{ width: "25px", height: "25px" }} />
+            </a>
           </div>
         </div>
       </div>
