@@ -10,6 +10,7 @@ import LikedList from "./components/LikedList";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { ToastProvider } from "./components/ToastProvider";
 import SharePage from "./components/SharePage";
+import AiPage from "./components/AiPage";
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -98,6 +99,11 @@ function App() {
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/ai" element={
+            <ProtectedRoute>
+              <AiPage />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />

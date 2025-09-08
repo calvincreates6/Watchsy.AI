@@ -319,7 +319,7 @@ export default function AI() {
                 </button>
               </div>
             </div>
-          </div>
+    </div>
         </>
       )}
     </>

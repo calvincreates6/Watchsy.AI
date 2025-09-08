@@ -6,15 +6,13 @@ import { auth } from "../../firebaseConfig"; // ⬅️ import your Firebase auth
 import { useAuthState } from "react-firebase-hooks/auth";
 import Image from "../../assets/watchsy.jpg";
 import "./ProfileDropdown.css";
-import movieClapperboard from "../../assets/movie clapperboard.png";
 import heart from "../../assets/heart.png";
 import castAndCrew from "../../assets/cast and crew.png";
-import clock from "../../assets/watchlater clock.png";
 import home from "../../assets/home.png";
 import checklist from "../../assets/checklist.png";
-import blueBird from "../../assets/blue bird.png";
 import ConfirmModal from "../ConfirmModal";
 import { deriveSlug } from "../../utils/slug";
+import ai from "../../assets/ai.png";
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -126,6 +124,12 @@ function ProfileDropdown() {
         <a href="/" tabIndex={0} role="menuitem">
           <img src={home} alt="Home" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           Home
+        </a>
+      </li>
+      <li>
+        <a href="/ai" tabIndex={0} role="menuitem">
+          <img src={ai} alt="AI" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          AI
         </a>
       </li>
       <li>
