@@ -152,7 +152,7 @@ export default function LikedList() {
                     className="btn-primary"
                     onClick={() => handleAddToWatchlist(movie)}
                   >
-                    🔁 Add to Watch Again
+                    🔁 Watch Again
                   </button>
                   <button 
                     className="btn-secondary"

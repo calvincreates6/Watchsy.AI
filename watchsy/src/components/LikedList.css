@@ -143,6 +143,7 @@
 }
 
 .likedlist-actions .btn-primary {
+  padding: 16px;
   background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
   color: #fff;
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
@@ -153,6 +154,7 @@
 }
 
 .likedlist-actions .btn-secondary {
+  padding: 16px;
   background: rgba(255, 107, 107, 0.1);
   color: #ff6b6b;
   border: 1px solid rgba(255, 107, 107, 0.3);
