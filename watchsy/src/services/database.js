@@ -15,6 +15,10 @@ import {
   getDoc
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { useState, useEffect } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebaseConfig';
+import { collection as firestoreCollection, onSnapshot, doc as firestoreDoc, getDoc as firestoreGetDoc } from 'firebase/firestore';
 
 // ---------- Helpers ----------
 
@@ -321,3 +325,60 @@ export const migrateLocalStorageToFirestore = async (user) => {
 };
 
 export { getUserDoc };
+
+export const useUserData = () => {
+  const [user, loading, error] = useAuthState(auth);
+  const [watchlist, setWatchlist] = useState([]);
+  const [watchedList, setWatchedList] = useState([]);
+  const [likedList, setLikedList] = useState([]);
+  const [privacySettings, setPrivacySettings] = useState({ watchlist: 'private', liked: 'private', watched: 'private' });
+  const [userStats, setUserStats] = useState({
+    watchlistCount: 0,
+    watchedCount: 0,
+    likedCount: 0
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch privacy settings in useUserData
+  useEffect(() => {
+    if (!user || loading) return;
+
+    const userId = user.uid || (user.email ? user.email.replace(/[^a-zA-Z0-9]/g, '_') : 'anonymous');
+
+    const fetchPrivacySettings = async () => {
+      try {
+        const privacyDocRef = firestoreDoc(db, 'users', userId, 'privacy');
+        const privacyDoc = await firestoreGetDoc(privacyDocRef);
+        if (privacyDoc.exists()) {
+          setPrivacySettings(privacyDoc.data());
+          console.log("Fetched privacy settings:", privacyDoc.data());
+        }
+      } catch (error) {
+        console.error("Error fetching privacy settings:", error);
+      }
+    };
+
+    fetchPrivacySettings();
+
+    // Existing code for fetching lists...
+  }, [user, loading]);
+
+  // Apply privacy settings in SharePage
+  useEffect(() => {
+    if (privacySettings) {
+      // setPrivacy(privacySettings); // This line was not in the original file, so it's commented out.
+      console.log("Applied privacy settings:", privacySettings);
+    }
+  }, [privacySettings]);
+
+  return {
+    user,
+    watchlist,
+    watchedList,
+    likedList,
+    privacySettings,
+    userStats,
+    isLoading,
+    error
+  };
+};
