@@ -326,6 +326,63 @@ export const migrateLocalStorageToFirestore = async (user) => {
 
 export { getUserDoc };
 
+// ======== Sharing & Privacy ========
+
+// Save per-list privacy settings under users/{userId}/privacy (document with fields for list types)
+export const setPrivacySettings = async (user, privacy) => {
+  try {
+    const userId = getUserIdentifier(user);
+    const ref = doc(db, 'users', userId, 'privacy', 'settings');
+    await setDoc(ref, privacy, { merge: true });
+    return { success: true };
+  } catch (e) {
+    console.error('Error saving privacy settings:', e);
+    return { success: false, error: e.message };
+  }
+};
+
+export const getPrivacySettings = async (user) => {
+  try {
+    const userId = getUserIdentifier(user);
+    const ref = doc(db, 'users', userId, 'privacy', 'settings');
+    const snap = await getDoc(ref);
+    return { success: true, data: snap.exists() ? snap.data() : {} };
+  } catch (e) {
+    console.error('Error loading privacy settings:', e);
+    return { success: false, data: {}, error: e.message };
+  }
+};
+
+// Public link mapping collection: publicLinks/{slug}
+// Document shape: { slug, userId, listType, createdAt }
+export const upsertPublicLink = async (slug, userId, listType) => {
+  try {
+    const ref = doc(db, 'publicLinks', slug);
+    await setDoc(ref, {
+      slug,
+      userId,
+      listType,
+      createdAt: serverTimestamp(),
+    }, { merge: true });
+    return { success: true };
+  } catch (e) {
+    console.error('Error upserting public link:', e);
+    return { success: false, error: e.message };
+  }
+};
+
+export const resolvePublicLink = async (slug) => {
+  try {
+    const ref = doc(db, 'publicLinks', slug);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return { success: false, error: 'Link not found' };
+    return { success: true, data: snap.data() };
+  } catch (e) {
+    console.error('Error resolving public link:', e);
+    return { success: false, error: e.message };
+  }
+};
+
 export const useUserData = () => {
   const [user, loading, error] = useAuthState(auth);
   const [watchlist, setWatchlist] = useState([]);
@@ -347,7 +404,7 @@ export const useUserData = () => {
 
     const fetchPrivacySettings = async () => {
       try {
-        const privacyDocRef = firestoreDoc(db, 'users', userId, 'privacy');
+        const privacyDocRef = firestoreDoc(db, 'users', userId, 'privacy', 'settings');
         const privacyDoc = await firestoreGetDoc(privacyDocRef);
         if (privacyDoc.exists()) {
           setPrivacySettings(privacyDoc.data());

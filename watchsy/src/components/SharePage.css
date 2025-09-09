@@ -109,15 +109,16 @@
 /* Preview posters */
 .share-previewRow {
   display: flex;
-  gap: 8px;
+  gap: 14px;
+  justify-content: center;
   align-items: center;
   min-height: 100px;
   flex-wrap: wrap;
 }
 
 .share-poster {
-  width: 74px;
-  height: 98px;
+  width: 120px;
+  height: 170px;
   object-fit: cover;
   border-radius: 10px;
   box-shadow: 0 6px 16px rgba(0,0,0,0.35);

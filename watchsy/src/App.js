@@ -11,6 +11,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { ToastProvider } from "./components/ToastProvider";
 import SharePage from "./components/SharePage";
 import AiPage from "./components/AiPage";
+import PublicWatchlist from "./components/PublicWatchlist";
+import PublicLikedList from "./components/PublicLikedList";
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -91,6 +93,9 @@ function App() {
               <LikedList />
             </ProtectedRoute>
           } />
+          {/* Public shareable routes (read-only) */}
+          <Route path="/s/:slug/watchlist" element={<PublicWatchlist />} />
+          <Route path="/s/:slug/likedlist" element={<PublicLikedList />} />
           <Route path="/share" element={
             <ProtectedRoute>
               <SharePage />
