@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ProfileDropdown from "./ProfileDropdown";
 import search from "../../assets/search.png";
-import AI from "./AI";
 
 function Header({ onSearch, transparent = false }) {
   const [query, setQuery] = useState("");
@@ -189,9 +188,6 @@ function Header({ onSearch, transparent = false }) {
               <img src={search} alt="Search" style={{ width: "25px", height: "25px", marginRight: "6px" }} />
               Search
             </button>
-            <div style={{ marginLeft: '8px' }}>
-              <AI />
-            </div>
           </form>
         </div>
 

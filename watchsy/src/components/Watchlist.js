@@ -21,6 +21,15 @@ export default function Watchlist() {
   const isHero = !searchQuery.trim();
   const toast = useToast();
 
+  // Normalize legacy genre data from Firestore (strings, ids, or {id,name} objects)
+  const renderGenreText = (g) => {
+    if (g == null) return '';
+    if (typeof g === 'string') return g;
+    if (typeof g === 'number') return String(g);
+    if (typeof g === 'object') return g.name || String(g.id || '');
+    return String(g);
+  };
+
   const {
     user,
     loading,
@@ -92,6 +101,26 @@ export default function Watchlist() {
   };
 
   const watchedSorted = (watchedList || []).slice().sort((a, b) => getWatchedTime(b) - getWatchedTime(a));
+
+  // Compute added time from Firestore serverTimestamp or plain values
+  const getAddedTime = (movie) => {
+    const t = movie && movie.addedAt;
+    if (!t) return 0;
+    if (typeof t === 'number') return t;
+    if (typeof t === 'string') return Date.parse(t) || 0;
+    if (typeof t === 'object') {
+      if (typeof t.seconds === 'number') {
+        const ns = typeof t.nanoseconds === 'number' ? t.nanoseconds : 0;
+        return t.seconds * 1000 + Math.floor(ns / 1e6);
+      }
+      const d = new Date(t);
+      const ms = d.getTime();
+      return isNaN(ms) ? 0 : ms;
+    }
+    return 0;
+  };
+
+  const watchLaterSorted = (watchlist || []).slice().sort((a, b) => getAddedTime(b) - getAddedTime(a));
 
   const totalMovies = (watchlist?.length || 0) + (watchedList?.length || 0);
 
@@ -215,7 +244,7 @@ export default function Watchlist() {
               <p className="empty-message">No movies in your watch later list. Start adding movies!</p>
             ) : (
               <div className="watchlist-grid">
-                {watchlist.map((movie) => (
+                {watchLaterSorted.map((movie) => (
                   <div key={movie.id} className="watchlist-card">
                     <img src={movie.poster} alt={movie.title} className="watchlist-poster" />
                     <div className="watchlist-content">
@@ -232,7 +261,7 @@ export default function Watchlist() {
                       </div>
                       <div className="watchlist-genres">
                         {movie.genres?.map((genre, idx) => (
-                          <span key={idx} className="genre-tag">{genre}</span>
+                          <span key={idx} className="genre-tag">{renderGenreText(genre)}</span>
                         ))}
                       </div>
                       <div className="watchlist-actions">
@@ -292,7 +321,7 @@ export default function Watchlist() {
                       </div>
                       <div className="watchlist-genres">
                         {movie.genres?.map((genre, idx) => (
-                          <span key={idx} className="genre-tag">{genre}</span>
+                          <span key={idx} className="genre-tag">{renderGenreText(genre)}</span>
                         ))}
                       </div>
                       <div className="watchlist-actions">

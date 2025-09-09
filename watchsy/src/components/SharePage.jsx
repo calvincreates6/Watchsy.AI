@@ -5,6 +5,7 @@ import { useUserData } from '../hooks/useUserData';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebaseConfig';
 import { deriveListSlug } from '../utils/slug';
+import { setPrivacySettings, upsertPublicLink } from '../services/database';
 import checklist from '../assets/checklist.png';
 import heart from '../assets/heart.png';
 import eye from '../assets/eye.png';
@@ -13,7 +14,6 @@ import './SharePage.css';
 
 export default function SharePage() {
   const {
-    user,
     watchlist = [],
     likedList = [],
     watchedList = [],
@@ -33,6 +33,12 @@ export default function SharePage() {
           deriveListSlug(authUser.uid, 'watchlist'),
         ]);
         setSlugs({ watched: sw, liked: sl, watchlist: swl });
+        // Load persisted privacy and apply
+        try {
+          const { getPrivacySettings } = await import('../services/database');
+          const res = await getPrivacySettings({ uid: authUser.uid, email: authUser.email });
+          if (res?.data) setPrivacy(prev => ({ ...prev, ...res.data }));
+        } catch(_){}
       }
     })();
   }, [authUser]);
@@ -40,9 +46,9 @@ export default function SharePage() {
   const base = useMemo(() => window.location.origin, []);
 
   const links = useMemo(() => ({
-    watched: `${base}/${slugs.watched}/watchlist?tab=watched`,
-    watchlist: `${base}/${slugs.watchlist}/watchlist`,
-    liked: `${base}/${slugs.liked}/likedlist`,
+    watched: `${base}/s/watchlist/${slugs.watched}?tab=watched`,
+    watchlist: `${base}/s/watchlist/${slugs.watchlist}`,
+    liked: `${base}/s/likedlist/${slugs.liked}`,
   }), [base, slugs]);
 
   const getWatchedTime = (movie) => {
@@ -88,14 +94,34 @@ export default function SharePage() {
     } catch (e) {}
   };
 
-  const handlePrivacy = (key, mode) => {
-    setPrivacy((p) => ({ ...p, [key]: mode }));
+  const handlePrivacy = async (key, mode) => {
+    const next = { ...privacy, [key]: mode };
+    setPrivacy(next);
     setOpenMenu(null);
+    if (authUser?.uid) {
+      await setPrivacySettings({ uid: authUser.uid, email: authUser.email }, next);
+      // If made link/public, ensure mapping exists
+      if (mode !== 'private') {
+        let slug = slugs[key];
+        if (!slug) {
+          try { slug = await deriveListSlug(authUser.uid, key); } catch(_) {}
+        }
+        if (slug) await upsertPublicLink(slug, authUser.uid, key);
+      }
+    }
   };
 
-  const Icon = ({ name }) => (
-    <i className={`bi bi-${name} share-icon`} />
-  );
+  // Ensure mappings exist on mount when slugs resolve
+  useEffect(() => {
+    (async () => {
+      if (!authUser?.uid) return;
+      for (const key of ['watched','liked','watchlist']) {
+        if (slugs[key] && privacy[key] !== 'private') {
+          await upsertPublicLink(slugs[key], authUser.uid, key);
+        }
+      }
+    })();
+  }, [authUser, slugs, privacy]);
 
   const ShareButtons = ({ link, title }) => (
     <div className="share-shareRow">

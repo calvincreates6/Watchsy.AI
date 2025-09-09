@@ -8,8 +8,8 @@ import posterFiller from "../../assets/posterFiller.jpg";
 
 function Card(props) {
   let movieId = -1;
-  let ratings = props.rating;
-  ratings = ratings.toFixed(1);
+  let ratings = props.rating || 0;
+  ratings = (ratings || 0).toFixed(1);
 
   const [watchStatus, setWatchStatus] = useState("none"); // "none", "watchLater", "watched"
   const [liked, setLiked] = useState(false);

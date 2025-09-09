@@ -4,7 +4,10 @@ import './AI.css';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../firebaseConfig';
 import { askOpenAI } from '../../api/OpenAi';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit as fsLimit } from 'firebase/firestore';
+import { searchMovies } from '../../api/tmdb';
+import { useUserData } from '../../hooks/useUserData';
+import { useToast } from '../ToastProvider';
 
 export default function AI() {
   const [user] = useAuthState(auth);
@@ -16,6 +19,8 @@ export default function AI() {
   const panelRef = useRef(null);
   const messagesRef = useRef(null);
   const endRef = useRef(null);
+  const { addMovieToWatchlist } = useUserData();
+  const toast = useToast();
 
   const placeholders = [
     'Try: Where can I watch Inception?',
@@ -46,21 +51,18 @@ export default function AI() {
     }
   }, [open]);
 
-  // Firestore: subscribe to chat history for logged-in user
+  // Firestore: subscribe to chat history only when panel is open; limit to recent messages
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !open) return;
     const col = collection(db, 'users', user.uid, 'aiMessages');
-    const q = query(col, orderBy('createdAt', 'asc'));
+    const q = query(col, orderBy('createdAt', 'desc'), fsLimit(200));
     const unsub = onSnapshot(q, (snap) => {
       const cloud = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Normalize to { role, text }
-      const normalized = cloud.map(m => ({ role: m.role || 'assistant', text: m.text || '' }));
-      if (normalized.length > 0) {
-        setMessages(normalized);
-      }
+      const normalized = cloud.map(m => ({ role: m.role || 'assistant', text: m.text || '' })).reverse();
+      if (normalized.length > 0) setMessages(normalized);
     });
     return () => unsub();
-  }, [user]);
+  }, [user, open]);
 
   useEffect(() => {
     const saved = localStorage.getItem('watchsy_ai_messages');
@@ -235,6 +237,72 @@ export default function AI() {
     ));
   };
 
+  // Helpers to parse titles and pick best TMDB match
+  const normalizeTitle = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const chooseBestResult = (results, target) => {
+    const nt = normalizeTitle(target);
+    let best = null; let bestScore = -1;
+    for (const r of (results || [])) {
+      const rt = normalizeTitle(r.title || r.name || '');
+      let score = 0;
+      if (rt === nt) score += 100;
+      else if (rt.startsWith(nt) || nt.startsWith(rt)) score += 60;
+      score += (r.popularity || 0) * 0.01 + (r.vote_count || 0) * 0.001 + (r.vote_average || 0);
+      if (r.poster_path) score += 5;
+      if (score > bestScore) { bestScore = score; best = r; }
+    }
+    return best;
+  };
+  const parseAiTitles = (text) => {
+    const numbered = /^\d+[\.)]?\s+/;
+    const bulleted = /^[-*•]\s+/;
+    return String(text || '')
+      .split(/\r?\n+/)
+      .map(l => l.trim())
+      .filter(l => numbered.test(l) || bulleted.test(l))
+      .map(l => l.replace(/^[-*•\d]+[\.)\s]+/, '').replace(/\s*\(\d{4}\).*/, '').trim())
+      .filter(Boolean)
+      .slice(0, 20);
+  };
+
+  const isNumberedList = (text) => {
+    const lines = String(text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const count = lines.filter(l => /^\d+[\.)]?\s+/.test(l)).length;
+    return count >= 3; // show button when there are at least 3 numbered items
+  };
+
+  const addAllFromAssistantText = async (text) => {
+    try {
+      if (!user) { toast.info && toast.info('Please login'); return; }
+      const titles = parseAiTitles(text);
+      if (titles.length === 0) return;
+      let added = 0;
+      for (const title of titles) {
+        try {
+          const results = await searchMovies(title);
+          const best = chooseBestResult(results, title);
+          if (!best) continue;
+          const movie = {
+            id: best.id,
+            title: best.title || best.name,
+            poster: best.poster_path ? `https://image.tmdb.org/t/p/w500${best.poster_path}` : '',
+            rating: best.vote_average,
+            year: best.release_date ? best.release_date.split('-')[0] : undefined,
+          };
+          const res = await addMovieToWatchlist(movie);
+          if (res?.success) added += 1;
+        } catch (_) {}
+      }
+      if (added > 0) {
+        if (toast && typeof toast.success === 'function') toast.success(`Added ${added} to Watch Later`);
+      } else {
+        if (toast && typeof toast.info === 'function') toast.info('No movies could be added');
+      }
+    } catch (e) {
+      if (toast && typeof toast.error === 'function') toast.error('Failed to add movies');
+    }
+  };
+
   const stopScroll = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -283,11 +351,28 @@ export default function AI() {
 
             <div style={styles.body}>
               <div style={styles.messages} className="ai-scroll" ref={messagesRef}>
-                {messages.map((m, i) => (
-                  <div key={i} style={m.role === 'assistant' ? styles.msgAssistant : styles.msgUser}>
-                    <div style={styles.msgText} className="ai-msg">{renderMessage(m.text)}</div>
-                  </div>
-                ))}
+                {messages.map((m, i) => {
+                  const isAssistant = m.role === 'assistant';
+                  const showAdd = isAssistant && isNumberedList(m.text);
+                  const bubbleStyle = isAssistant
+                    ? { ...styles.msgAssistant, paddingBottom: showAdd ? 48 : 8 }
+                    : styles.msgUser;
+                  return (
+                    <div key={i} style={bubbleStyle}>
+                      <div style={styles.msgText} className="ai-msg">{renderMessage(m.text)}</div>
+                      {showAdd && (
+                      <button
+                        type="button"
+                        onClick={() => addAllFromAssistantText(m.text)}
+                        style={styles.addAllBtn}
+                        title="Add all to Watch Later"
+                      >
+                        ➕ Add to Watch List
+                      </button>
+                      )}
+                    </div>
+                  );
+                })}
                 {isTyping && (
                   <div style={styles.msgAssistant}>
                     <span className="typing">
@@ -319,7 +404,7 @@ export default function AI() {
                 </button>
               </div>
             </div>
-          </div>
+    </div>
         </>
       )}
     </>
@@ -412,6 +497,7 @@ const styles = {
     padding: '8px 10px',
     borderRadius: '12px',
     maxWidth: '85%',
+    position: 'relative',
   },
   msgUser: {
     alignSelf: 'flex-end',
@@ -452,5 +538,18 @@ const styles = {
     fontSize: '0.95rem',
     lineHeight: 1.6,
     whiteSpace: 'normal',
+  },
+  addAllBtn: {
+    position: 'absolute',
+    right: '10px',
+    bottom: '10px',
+    background: 'linear-gradient(90deg, #1CB5E0 40%, #ffffff 100%)',
+    color: '#181c24',
+    border: 'none',
+    borderRadius: '16px',
+    padding: '6px 10px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
   },
 };
