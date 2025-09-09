@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import Header from './subcomps/Header';
 import Footer from './subcomps/Footer';
@@ -7,6 +7,9 @@ import './SharePage.css';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, query as fsQuery, limit as fsLimit } from 'firebase/firestore';
 import { resolvePublicLink, getPrivacySettings } from '../services/database';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../firebaseConfig';
+import { deriveListSlug } from '../utils/slug';
 
 export default function PublicWatchlist(){
   const { slug } = useParams();
@@ -19,6 +22,7 @@ export default function PublicWatchlist(){
   const [watched, setWatched] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [viewer] = useAuthState(auth);
 
   useEffect(() => {
     (async () => {
@@ -27,16 +31,24 @@ export default function PublicWatchlist(){
       setWatchlist([]);
       setWatched([]);
       try {
-        const res = await resolvePublicLink(slug);
-        if (!res.success) { setError('Link not found'); setLoading(false); return; }
-        const { userId } = res.data || {};
+        let res = await resolvePublicLink(slug);
+        let userId = res.success ? (res.data || {}).userId : null;
+        // Fallback: if viewer is the owner but mapping is missing (private mode), allow access
+        if (!userId && viewer?.uid) {
+          try {
+            const mySlug = await deriveListSlug(viewer.uid, 'watchlist');
+            if (mySlug === slug) userId = viewer.uid;
+          } catch(_) {}
+        }
+        if (!userId) { setError('Link not found'); setLoading(false); return; }
         setOwnerId(userId);
         // privacy
         const priv = await getPrivacySettings({ uid: userId });
         const p = { watchlist: 'public', liked: 'public', watched: 'public', ...(priv.data || {}) };
         setPrivacy(p);
-        const canSeeWatchlist = p.watchlist !== 'private';
-        const canSeeWatched = p.watched !== 'private';
+        const isOwner = !!viewer && viewer.uid === userId;
+        const canSeeWatchlist = isOwner || p.watchlist !== 'private';
+        const canSeeWatched = isOwner || p.watched !== 'private';
         // Conditionally fetch allowed lists only
         const tasks = [];
         if (canSeeWatchlist) {
@@ -54,10 +66,11 @@ export default function PublicWatchlist(){
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, viewer]);
 
-  const canSeeWatchlist = privacy.watchlist !== 'private';
-  const canSeeWatched = privacy.watched !== 'private';
+  const isOwner = !!viewer && viewer.uid === ownerId;
+  const canSeeWatchlist = isOwner || privacy.watchlist !== 'private';
+  const canSeeWatched = isOwner || privacy.watched !== 'private';
 
   if (loading) return (<><Header onSearch={() => {}} /><div className="share-content"><h2 style={{color:'#fff'}}>Loading...</h2></div><Footer/></>);
   if (error) return (<><Header onSearch={() => {}} /><div className="share-content"><h2 style={{color:'#fff'}}>{error}</h2></div><Footer/></>);
@@ -89,7 +102,7 @@ export default function PublicWatchlist(){
               ))}
             </div>
           ) : (
-            <div className="share-noPreview">This list is private</div>
+            <div className="share-noPreview" style={{color:'#fff', textAlign:'center', height:'50vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem'}}>This list is private</div>
           )
         )}
 
@@ -101,7 +114,7 @@ export default function PublicWatchlist(){
               ))}
             </div>
           ) : (
-            <div className="share-noPreview">This list is private</div>
+            <div className="share-noPreview" style={{color:'#fff', textAlign:'center', height:'50vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem'}}>This list is private</div>
           )
         )}
       </div>

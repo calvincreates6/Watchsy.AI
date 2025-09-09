@@ -13,6 +13,9 @@ import SharePage from "./components/SharePage";
 import AiPage from "./components/AiPage";
 import PublicWatchlist from "./components/PublicWatchlist";
 import PublicLikedList from "./components/PublicLikedList";
+import About from "./components/static/About";
+import Contact from "./components/static/Contact";
+import Legal from "./components/static/Legal";
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -94,13 +97,20 @@ function App() {
             </ProtectedRoute>
           } />
           {/* Public shareable routes (read-only) */}
-          <Route path="/s/:slug/watchlist" element={<PublicWatchlist />} />
-          <Route path="/s/:slug/likedlist" element={<PublicLikedList />} />
+          <Route path="/s/watchlist/:slug" element={<PublicWatchlist />} />
+          <Route path="/s/likedlist/:slug" element={<PublicLikedList />} />
+          {/* Back-compat: old pattern /s/:slug/watchlist -> redirect */}
+          <Route path="/s/:slug/watchlist" element={<Navigate to={"/s/watchlist/:slug"} replace />} />
+          <Route path="/s/:slug/likedlist" element={<Navigate to={"/s/likedlist/:slug"} replace />} />
           <Route path="/share" element={
             <ProtectedRoute>
               <SharePage />
             </ProtectedRoute>
           } />
+          {/* Static pages */}
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/legal" element={<Legal />} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />

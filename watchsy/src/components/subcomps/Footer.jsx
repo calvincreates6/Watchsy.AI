@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import movieClapperboard from "../../assets/movie clapperboard.png";
+import React from "react";
 import home from "../../assets/home.png";
 import blueBird from "../../assets/blue bird.png";
 import camera from "../../assets/camera.png";
@@ -20,13 +19,13 @@ function Footer() {
         <div style={styles.linksSection}>
           <div style={styles.column}>
             <h4 style={styles.heading} className="content-title">Company</h4>
-            <a style={styles.link} href="#" className="nav-link">About</a>
-            <a style={styles.link} href="#" className="nav-link">Contact</a>
+            <a style={styles.link} href="/about" className="nav-link">About</a>
+            <a style={styles.link} href="/contact" className="nav-link">Contact</a>
           </div>
           <div style={styles.column}>
             <h4 style={styles.heading} className="content-title">Resources</h4>
-            <a style={styles.link} href="#" className="nav-link">Terms</a>
-            <a style={styles.link} href="#" className="nav-link">Privacy</a>
+            <a style={styles.link} href="/legal#terms" className="nav-link">Terms</a>
+            <a style={styles.link} href="/legal#privacy" className="nav-link">Privacy</a>
           </div>
         </div>
 

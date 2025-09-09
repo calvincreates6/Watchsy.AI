@@ -14,7 +14,6 @@ import './SharePage.css';
 
 export default function SharePage() {
   const {
-    user,
     watchlist = [],
     likedList = [],
     watchedList = [],
@@ -47,9 +46,9 @@ export default function SharePage() {
   const base = useMemo(() => window.location.origin, []);
 
   const links = useMemo(() => ({
-    watched: `${base}/s/${slugs.watched}/watchlist?tab=watched`,
-    watchlist: `${base}/s/${slugs.watchlist}/watchlist`,
-    liked: `${base}/s/${slugs.liked}/likedlist`,
+    watched: `${base}/s/watchlist/${slugs.watched}?tab=watched`,
+    watchlist: `${base}/s/watchlist/${slugs.watchlist}`,
+    liked: `${base}/s/likedlist/${slugs.liked}`,
   }), [base, slugs]);
 
   const getWatchedTime = (movie) => {

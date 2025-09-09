@@ -7,7 +7,6 @@ import eye from "../assets/eye.png";
 import hide from "../assets/hiding eyes monkey.png";
 import star from "../assets/star.png";
 import videoReel from "../assets/video reel.png";
-import tv from "../assets/tv.png";
 import checkList from "../assets/checklist.png";
 import { useToast } from "./ToastProvider";
 import {
@@ -55,6 +54,27 @@ const Login = () => {
         return "Something went wrong. Please try again.";
     }
   };
+  // Auto logout timer
+  useEffect(() => {
+    let timerId;
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) {
+        // 24 hours in ms
+        const DURATION = 24 * 60 * 60 * 1000;
+        if (timerId) clearTimeout(timerId);
+        timerId = setTimeout(async () => {
+          try {
+            await auth.signOut();
+            if (toast && typeof toast.info === 'function') toast.info('You were signed out for security. Please sign in again.');
+            navigate('/login');
+          } catch (_) {}
+        }, DURATION);
+      } else {
+        if (timerId) { clearTimeout(timerId); timerId = undefined; }
+      }
+    });
+    return () => { if (timerId) clearTimeout(timerId); unsub && unsub(); };
+  }, [navigate, toast]);
 
   const googleprovider = new GoogleAuthProvider();
   const twitterProvider = new TwitterAuthProvider();

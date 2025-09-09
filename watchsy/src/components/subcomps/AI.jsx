@@ -4,7 +4,7 @@ import './AI.css';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../firebaseConfig';
 import { askOpenAI } from '../../api/OpenAi';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, limit as fsLimit } from 'firebase/firestore';
 import { searchMovies } from '../../api/tmdb';
 import { useUserData } from '../../hooks/useUserData';
 import { useToast } from '../ToastProvider';
@@ -51,21 +51,18 @@ export default function AI() {
     }
   }, [open]);
 
-  // Firestore: subscribe to chat history for logged-in user
+  // Firestore: subscribe to chat history only when panel is open; limit to recent messages
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user?.uid || !open) return;
     const col = collection(db, 'users', user.uid, 'aiMessages');
-    const q = query(col, orderBy('createdAt', 'asc'));
+    const q = query(col, orderBy('createdAt', 'desc'), fsLimit(200));
     const unsub = onSnapshot(q, (snap) => {
       const cloud = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Normalize to { role, text }
-      const normalized = cloud.map(m => ({ role: m.role || 'assistant', text: m.text || '' }));
-      if (normalized.length > 0) {
-        setMessages(normalized);
-      }
+      const normalized = cloud.map(m => ({ role: m.role || 'assistant', text: m.text || '' })).reverse();
+      if (normalized.length > 0) setMessages(normalized);
     });
     return () => unsub();
-  }, [user]);
+  }, [user, open]);
 
   useEffect(() => {
     const saved = localStorage.getItem('watchsy_ai_messages');

@@ -31,7 +31,7 @@ function ProfileDropdown() {
         const s = await deriveSlug(user.uid);
         if (active) setSlug(s);
       } else {
-        setSlug('me');
+        setSlug('');
       }
     })();
     return () => { active = false; };
@@ -44,11 +44,6 @@ function ProfileDropdown() {
     } catch (error) {
       console.error("Logout failed:", error.message);
     }
-  };
-
-  const handleShare = () => {
-    // navigator.clipboard.writeText("https://www.watchsy.com");
-    alert("Sharing Feature Coming Soon!");
   };
 
   // Close dropdown on outside click or Escape
