@@ -5,6 +5,11 @@ import websiteLogo from "../assets/watchsy.jpg";
 import "../App.css";
 import eye from "../assets/eye.png";
 import hide from "../assets/hiding eyes monkey.png";
+import star from "../assets/star.png";
+import videoReel from "../assets/video reel.png";
+import tv from "../assets/tv.png";
+import checkList from "../assets/checklist.png";
+import { useToast } from "./ToastProvider";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -15,6 +20,7 @@ import {
   TwitterAuthProvider,
 } from "firebase/auth";
 import { auth } from "../firebaseConfig";
+import loginPageImage from "../assets/Movie-login-bg.jpg";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,6 +33,28 @@ const Login = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
+
+  const getAuthErrorMessage = (error) => {
+    const code = (error && error.code) || "";
+    switch (code) {
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+        return "Invalid email or password.";
+      case "auth/user-not-found":
+        return "No account found for that email.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/too-many-requests":
+        return "Too many attempts. Please try again later.";
+      case "auth/network-request-failed":
+        return "Network error. Check your connection and try again.";
+      case "auth/popup-closed-by-user":
+        return "Sign-in was cancelled.";
+      default:
+        return "Something went wrong. Please try again.";
+    }
+  };
 
   const googleprovider = new GoogleAuthProvider();
   const twitterProvider = new TwitterAuthProvider();
@@ -54,11 +82,14 @@ const Login = () => {
         document.body.style.transition = "background-color 0.8s ease";
         document.body.style.backgroundColor = "#181c24";
         
+        try { if (toast && typeof toast.success === 'function') toast.success('Welcome back!'); } catch(_) {}
         setTimeout(() => {
           navigate("/", { state: { name: user.email, id: user.uid } });
         }, 300);
       } catch (error) {
-        setError("Login failed: " + error.message);
+        const msg = getAuthErrorMessage(error);
+        try { if (toast && typeof toast.error === 'function') toast.error(msg); } catch(_) {}
+        setError("");
         setIsLoading(false);
       }
     } else {
@@ -81,11 +112,14 @@ const Login = () => {
         document.body.style.transition = "background-color 0.8s ease";
         document.body.style.backgroundColor = "#181c24";
         
+        try { if (toast && typeof toast.success === 'function') toast.success('Account created!'); } catch(_) {}
         setTimeout(() => {
           navigate("/", { state: { name: user.email, id: user.uid } });
         }, 300);
       } catch (error) {
-        setError("Signup failed: " + error.message);
+        const msg = getAuthErrorMessage(error);
+        try { if (toast && typeof toast.error === 'function') toast.error(msg); } catch(_) {}
+        setError("");
         setIsLoading(false);
       }
     }
@@ -105,6 +139,7 @@ const Login = () => {
           document.body.style.transition = "background-color 0.8s ease";
           document.body.style.backgroundColor = "#181c24";
           
+          try { if (toast && typeof toast.success === 'function') toast.success('Signed in with Google'); } catch(_) {}
           setTimeout(() => {
             navigate("/", { state: userData });
           }, 300);
@@ -114,7 +149,9 @@ const Login = () => {
         }
       });
     } catch (err) {
-      setError(err.message);
+      const msg = getAuthErrorMessage(err);
+      try { if (toast && typeof toast.error === 'function') toast.error(msg); } catch(_) {}
+      setError("");
       setIsLoading(false);
     }
   };
@@ -132,7 +169,9 @@ const Login = () => {
         }
       });
     } catch (error) {
-      setError("Twitter login failed: " + error.message);
+      const msg = getAuthErrorMessage(error);
+      try { if (toast && typeof toast.error === 'function') toast.error(msg); } catch(_) {}
+      setError("");
       setIsLoading(false);
     }
   };
@@ -166,12 +205,36 @@ const Login = () => {
       <div style={styles.pageWrapper}>
         {/* Background */}
         <div style={styles.backgroundContainer}>
+          
+          <div style={styles.bgImage}></div>
           <div style={styles.gradientOverlay}></div>
-          <div style={styles.patternOverlay}></div>
+          <div style={styles.vignetteOverlay}></div>
         </div>
-
         {/* Main Container */}
-        <div style={styles.outerContainer}>
+        <div className="login-page" style={styles.loginPage}>
+        <div className="login-container" style={styles.outerContainer}>
+        <div className="textGrid" style={styles.textGrid}>
+          <h1 style={styles.textGridTitle} className="content-title">
+            Discover with <br /><span style={styles.titleHighlight}>Watchsy AI</span>
+          </h1>
+          <p style={styles.textGridSubtitle} className="content-body">
+            Smart recommendations based on your liked movies. Track, share and find where to watch.
+          </p>
+          <div style={styles.featuresRow}>
+            <div style={styles.featureItem}>
+              <img src={star} alt="AI Picks" style={styles.featureIcon} />
+              <span>AI picks you'll love</span>
+            </div>
+            <div style={styles.featureItem}>
+              <img src={videoReel} alt="Trailers" style={styles.featureIcon} />
+              <span>Trailers & Cast</span>
+            </div>
+            <div style={styles.featureItem}>
+              <img src={checkList} alt="Save and Share your favorite movies" style={styles.featureIcon} />
+              <span>Save and Share your favorite movies</span>
+            </div>
+          </div>
+        </div>
           <div style={styles.container}>
             {/* Logo */}
             <div style={styles.logoContainer}>
@@ -213,7 +276,7 @@ const Login = () => {
                   {/* Google SVG */}
                   <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 48 48">
 <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path>
-</svg>
+                  </svg>
                   {isLoading ? "Loading..." : "Sign in with Google"}
                 </button>
                 <button
@@ -295,7 +358,7 @@ const Login = () => {
                     </div>
                   )}
 
-                  {error && <div style={styles.error}>{error}</div>}
+                  {/* Errors are shown via toast popups */}
 
                   <button
                     type="submit"
@@ -340,19 +403,21 @@ const Login = () => {
             )}
           </div>
         </div>
+        </div>
       </div>
     </div>
   );
 };
 
 const styles = {
+  loginPage: {},
   pageWrapper: {
     position: "relative",
     minHeight: "100vh",
     overflow: "hidden",
     fontFamily:
       "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    background: "linear-gradient(135deg, #181c24 0%, #232b3b 50%, #333a4d 100%)",
+    background: "transparent",
   },
   backgroundContainer: { 
     position: "fixed", 
@@ -360,8 +425,17 @@ const styles = {
     left: 0, 
     width: "100%", 
     height: "100%", 
-    zIndex: -1, 
+    zIndex: 0, 
     overflow: "hidden" 
+  },
+  bgImage: {
+    position: "absolute",
+    inset: 0,
+    backgroundImage: `url(${loginPageImage})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    // filter: "saturate(1.08) contrast(1.06) brightness(0.9)",
+    transform: "scaleX(-1.02)",
   },
   gradientOverlay: { 
     position: "absolute",
@@ -369,38 +443,92 @@ const styles = {
     left: 0,
     width: "100%",
     height: "100%",
-    background: "linear-gradient(135deg, rgba(24, 28, 36, 0.9) 0%, rgba(35, 43, 59, 0.8) 50%, rgba(51, 58, 77, 0.9) 100%)",
+    background: "linear-gradient(135deg, rgba(24, 28, 36, 0.6) 0%, rgba(35, 43, 59, 0) 50%, rgba(51, 58, 77, 0) 100%)",
+    pointerEvents: "none",
   },
-  patternOverlay: { 
+  vignetteOverlay: {
     position: "absolute",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundImage: "radial-gradient(circle at 25% 25%, rgba(255, 217, 61, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 75%, rgba(255, 217, 61, 0.1) 0%, transparent 50%)",
-    animation: "floatingPattern 20s ease-in-out infinite",
+    inset: 0,
+    background: "radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,0.55) 100%)",
+    pointerEvents: "none",
   },
   outerContainer: { 
     display: "flex", 
-    justifyContent: "center", 
+    justifyContent: "right", 
     alignItems: "center", 
     minHeight: "100vh", 
     padding: "20px",
     position: "relative",
     zIndex: 1,
   },
+  textGrid: {
+    position: "absolute",
+    left: "32px",
+    bottom: "32px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    textAlign: "left",
+    gap: "8px",
+    maxWidth: "520px",
+    padding: "14px 18px",
+    color: "#f5f6fa",
+    background: "linear-gradient(90deg, rgba(36, 100, 202, 0.3), rgba(0,0,0,0.25))",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: "16px",
+    backdropFilter: "blur(4px)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+  },
+  textGridTitle: {
+    margin: 0,
+    fontSize: "40px",
+    lineHeight: 1.15,
+    fontWeight: 800,
+  },
+  titleHighlight: {
+    background: "linear-gradient(135deg, #ff0088 0%, #00b3ff 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+  },
+  textGridSubtitle: {
+    margin: "4px 0 8px 0",
+    color: "#e6edf6",
+    fontSize: "16px",
+    opacity: 0.95,
+  },
+  featuresRow: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+  featureItem: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+    background: "rgba(0,0,0,0.35)",
+    border: "1px solid rgba(255,255,255,0.15)",
+    borderRadius: "20px",
+    padding: "8px 12px",
+    fontWeight: 600,
+    fontSize: "14px",
+  },
+  featureIcon: {
+    width: "18px",
+    height: "18px",
+  },
   container: { 
-    background: "rgba(35, 43, 59, 0.95)",
+    background: "linear-gradient(90deg, rgba(240, 200, 200, 0.7) 0%, rgba(0,0,0,0.25) 100%)",
     backdropFilter: "blur(20px)",
     borderRadius: "24px",
     padding: "40px",
     boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
-    border: "1px solid rgba(255, 217, 61, 0.2)",
+    // border: "1px solid rgba(255, 217, 61, 0.2)",
     maxWidth: "400px",
     width: "100%",
     textAlign: "center",
     position: "relative",
     overflow: "hidden",
+    right: "30",
   },
   logoContainer: { 
     marginBottom: "24px",
@@ -427,7 +555,7 @@ const styles = {
     fontWeight: "500",
   },
   heading: { 
-    fontSize: "28px",
+    fontSize: "20px",
     fontWeight: "700",
     color: "#f5f6fa",
     margin: "0 0 32px 0",
@@ -453,8 +581,8 @@ const styles = {
   googleBtn: { 
     padding: "16px 24px", 
     borderRadius: "50px",
-    border: "2px solid #333a4d",
-    background: "rgba(35, 43, 59, 0.8)",
+    border: "2px solid rgb(255, 217, 61, 0.5)",
+    background: "rgba(95, 48, 10, 0.8)",
     color: "#f5f6fa",
     fontSize: "16px",
     fontWeight: "600",
@@ -482,10 +610,10 @@ const styles = {
   input: { 
     width: "100%",
     padding: "18px 20px", 
-    borderRadius: "16px",
-    border: "2px solid #333a4d",
+    borderRadius: "28px",
+    border: "2px solid rgb(255, 217, 61, 0.5)",
     fontSize: "16px",
-    background: "rgba(24, 28, 36, 0.8)",
+    background: "rgba(95, 48, 10, 0.75)",
     color: "#f5f6fa",
     transition: "all 0.3s ease",
     boxSizing: "border-box",

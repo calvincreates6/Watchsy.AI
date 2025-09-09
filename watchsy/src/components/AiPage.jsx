@@ -32,6 +32,10 @@ function AiPage() {
   const [similarMovies, setSimilarMovies] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [recommendationReason, setRecommendationReason] = useState("");
+  // For Load More pagination
+  const [aiTitles, setAiTitles] = useState([]);
+  const [aiTitleIndex, setAiTitleIndex] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Generate recommendations only once per user session
   const hasGeneratedRef = useRef(false);
@@ -47,6 +51,7 @@ function AiPage() {
 
   const {
     user,
+    isLoading,
     watchlist,
     watchedList,
     likedList,
@@ -84,7 +89,7 @@ function AiPage() {
       .split(/\r?\n+/)
       .map(l => l.replace(/^[-*•\d]+[\.)\s]+/, '').replace(/\s*\(\d{4}\).*/, '').trim())
       .filter(Boolean)
-      .slice(0, 20);
+      .slice(0, 100);
   }
 
   // Load genres on component mount
@@ -105,63 +110,55 @@ function AiPage() {
   // Reset generation guard when user changes
   useEffect(() => { hasGeneratedRef.current = false; }, [user]);
 
-  // Generate AI recommendations once per user session (no refresh on list changes)
+  // Generate when liked list has loaded and has items; if empty after load, show fallback but allow future regen when likes appear
   useEffect(() => {
     if (!user) return;
     if (hasGeneratedRef.current) return;
-    hasGeneratedRef.current = true;
-    generateRecommendations();
-  }, [user]);
+    if (isLoading) return;
+    if ((likedList || []).length > 0) {
+      hasGeneratedRef.current = true;
+      generateRecommendations();
+    } else {
+      // Show fallback (popular) without locking generation; will regenerate when likes appear
+      (async () => {
+        try {
+          const popularMovies = await fetchPopularTopMovies();
+          setRecommendedMovies(popularMovies.slice(0, 20));
+          setRecommendationReason('Trending picks while we learn your taste');
+        } catch (_) {}
+      })();
+    }
+  }, [user, isLoading, likedList]);
 
   const generateRecommendations = async () => {
     setLoading(true);
     try {
-      // Create a prompt based on user's preferences
-      const userPreferences = {
-        watched: watchedList.slice(0, 10).map(m => m.title),
-        liked: likedList.slice(0, 10).map(m => m.title),
-        watchlist: watchlist.slice(0, 10).map(m => m.title)
-      };
+      // Prompt: use only liked movies
+      const likedTitles = likedList.slice(0, 15).map(m => m.title).filter(Boolean);
+      const prompt = `User liked these movies: ${likedTitles.join(', ')}.
 
-      const prompt = `Based on these user preferences, recommend 20 diverse movies:
-      
-Watched: ${userPreferences.watched.join(', ')}
-Liked: ${userPreferences.liked.join(', ')}
-Watchlist: ${userPreferences.watchlist.join(', ')}
-
-Please recommend movies that are:
-1. Similar to their liked movies
-2. Different genres they haven't explored much
-3. Popular/well-rated movies they might have missed
-4. Recent releases (2020-2024)
-
-Format your response as a simple list of movie titles, one per line.`;
+Recommend up to 100 movies they may also like (diverse genres, avoid duplicates and already-liked titles). Output ONLY movie titles, one per line.`;
 
       const aiResponse = await askOpenAI(prompt, {
         temperature: 0.7,
-        system: 'You are a movie recommendation expert. Provide only movie titles, one per line, based on user preferences.'
+        system: 'You are a movie recommendation expert. Use ONLY the provided liked movies to infer taste. Return ONLY movie titles, one per line.'
       });
 
-      setRecommendationReason(aiResponse);
+      // Show a friendly reason text rather than raw AI list
+      if (likedTitles.length > 0) {
+        setRecommendationReason(`Because you liked: ${likedTitles.join(', ')}`);
+      } else {
+        setRecommendationReason('Recommendations based on your liked movies');
+      }
 
       // Parse AI titles and search TMDB to render cards
       const titles = parseAiTitles(aiResponse);
-      let found = [];
-      for(const title of titles){
-        try {
-          const results = await searchMovies(title);
-          const best = chooseBestResult(results, title);
-          if(best) found.push(best);
-        } catch(_e) {}
-      }
-      // Dedupe by TMDB id
-      const unique = [];
-      const seen = new Set();
-      for(const m of found){ if(m && !seen.has(m.id)){ seen.add(m.id); unique.push(m);} }
-      if(unique.length > 0){
-        setRecommendedMovies(unique.slice(0, 20));
-      } else {
-        // Fallback to popular movies
+      setAiTitles(titles);
+      setAiTitleIndex(0);
+      setRecommendedMovies([]);
+      // Load first chunk
+      await loadMoreRecommendations(titles, 20);
+      if (recommendedMovies.length === 0 && titles.length === 0) {
         const popularMovies = await fetchPopularTopMovies();
         setRecommendedMovies(popularMovies.slice(0, 20));
       }
@@ -178,6 +175,32 @@ Format your response as a simple list of movie titles, one per line.`;
     } finally {
       setLoading(false);
     }
+  };
+
+  // Load more helper
+  const loadMoreRecommendations = async (allTitles = aiTitles, chunkSize = 20) => {
+    if (!allTitles || aiTitleIndex >= allTitles.length) return;
+    setLoadingMore(true);
+    const start = aiTitleIndex;
+    const end = Math.min(allTitles.length, start + chunkSize);
+    const subset = allTitles.slice(start, end);
+    let found = [];
+    for (const title of subset) {
+      try {
+        const results = await searchMovies(title);
+        const best = chooseBestResult(results, title);
+        if (best) found.push(best);
+      } catch (_) {}
+    }
+    // Dedupe with existing
+    const seen = new Set((recommendedMovies || []).map(m => m.id));
+    const next = [...recommendedMovies];
+    for (const m of found) {
+      if (m && !seen.has(m.id)) { seen.add(m.id); next.push(m); }
+    }
+    setRecommendedMovies(next);
+    setAiTitleIndex(end);
+    setLoadingMore(false);
   };
 
   // Handle movie selection for overlay
@@ -367,6 +390,10 @@ Format your response as a simple list of movie titles, one per line.`;
           }}>
             Recommended for You
           </h2>
+          {/* Ad Slot */}
+          <div style={{ margin: '40px 0', height: '100px', width: '100%'}}>
+            <AdSlot width={100} height={150} />
+          </div>
           <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap: '14px', margin:'8px 0 20px' }}>
             <a href="#recommendations" style={{
               textDecoration:'none',
@@ -420,13 +447,29 @@ Format your response as a simple list of movie titles, one per line.`;
                   />
                 </div>
               ))}
+              {aiTitleIndex < aiTitles.length && (
+                <div style={{ gridColumn: '1 / -1', display:'flex', justifyContent:'center', marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => loadMoreRecommendations()}
+                    disabled={loadingMore}
+                    style={{
+                      padding:'12px 22px',
+                      borderRadius: 24,
+                      border:'none',
+                      background:'linear-gradient(45deg, #ffd93d, #ffb347)',
+                      color:'#181c24',
+                      fontWeight:700,
+                      cursor:'pointer',
+                      boxShadow:'0 8px 24px rgba(255,217,61,0.25)'
+                    }}
+                  >
+                    {loadingMore ? 'Loading…' : 'Load More'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Ad Slot */}
-          <div style={{ margin: '40px 0' }}>
-            <AdSlot />
-          </div>
         </div>
       </div>
 
