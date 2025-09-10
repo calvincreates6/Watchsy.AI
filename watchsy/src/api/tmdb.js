@@ -113,6 +113,18 @@ export async function fetchSimilarMovies(movieId) {
   }
 }
 
+// Fetch detailed information for a movie (runtime, etc.)
+export async function fetchMovieDetails(movieId) {
+  try {
+    const res = await fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}`);
+    if (!res.ok) throw new Error('Failed to fetch movie details');
+    return await res.json();
+  } catch (error) {
+    console.error('Error fetching movie details:', error);
+    return null;
+  }
+}
+
 export async function fetchTopMovies2025() {
   try {
     // First, try to get well-known movies from 2025 with rating >= 7.5 and significant vote count

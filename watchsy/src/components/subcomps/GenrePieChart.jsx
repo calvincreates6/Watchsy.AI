@@ -123,7 +123,7 @@ export default function GenrePieChart({ movies = [], size = 320, minPercentForOt
 
   return (
     <div style={styles.card} ref={containerRef}>
-      <div style={styles.header}>Genre Breakdown</div>
+      <div style={styles.header}>Watched Movies Genre Breakdown</div>
       <div style={styles.content}>
         <svg width={size} height={size + depth} role="img" aria-label="Genre distribution">
           <g transform={`translate(${cx}, ${cy})`}>
