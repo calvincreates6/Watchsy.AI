@@ -1,30 +1,34 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import Card from "./subcomps/Card";
-import { fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies, searchMovies, fetchMovieDetails } from "../api/tmdb";
-import background from "../assets/movie_bg.jpg";
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getPersonDetails, getMoviesByPerson, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies, fetchMovieDetails } from '../api/tmdb';
+import { useUserData } from '../hooks/useUserData';
+import { useToast } from './ToastProvider';
+import { emit, on } from "../events/bus";
+import Card from './subcomps/Card';
+import posterFiller from "../assets/posterFiller.jpg";
 import castAndCrew from "../assets/cast and crew.png";
 import buy from "../assets/buy.png";
 import tv from "../assets/tv.png";
+import star from "../assets/star.png";
+import heart from "../assets/heart.png";
 import reel from "../assets/video reel.png";
 import brokenHeart from "../assets/broken heart.png";
 import calendar from "../assets/calendar.png";
-import { useUserData } from "../hooks/useUserData";
-import { useToast } from "./ToastProvider";
-import { emit, on } from "../events/bus";
-import AdSlot from "./ads/AdSlot";
-import posterFiller from "../assets/posterFiller.jpg";
-import { askOpenAI } from "../api/OpenAi";
-import Header from "./subcomps/Header";
-import Footer from "./subcomps/Footer"; 
-import AI from "./subcomps/AI";
+import checklist from "../assets/checklist.png";
+import Header from './subcomps/Header';
+import Footer from './subcomps/Footer';
 
-function AiPage() {
+const CrewMember = () => {
+  const { personId } = useParams();
   const navigate = useNavigate();
-  const [recommendedMovies, setRecommendedMovies] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [genres, setGenres] = useState({});
+  const { addMovieToWatchlist, removeMovieFromWatchlist, addMovieToLiked, removeMovieFromLiked, addMovieToWatched, removeMovieFromWatched, isMovieInList } = useUserData();
+  const toast = useToast();
+  
+  const [person, setPerson] = useState(null);
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedMovie, setSelectedMovie] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(false);
   const [providers, setProviders] = useState(null);
   const [providersLoading, setProvidersLoading] = useState(false);
   const [trailer, setTrailer] = useState(null);
@@ -33,223 +37,37 @@ function AiPage() {
   const [castLoading, setCastLoading] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
-  const [recommendationReason, setRecommendationReason] = useState("");
   const [runtime, setRuntime] = useState(null);
-  // For Load More pagination
-  const [aiTitles, setAiTitles] = useState([]);
-  const [aiTitleIndex, setAiTitleIndex] = useState(0);
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  // Generate recommendations only once per user session
-  const hasGeneratedRef = useRef(false);
-
-  // Movie status states for overlay buttons
   const [movieLiked, setMovieLiked] = useState(false);
   const [movieWatched, setMovieWatched] = useState(false);
   const [movieInWatchlist, setMovieInWatchlist] = useState(false);
-
-  // Sticky poster and scroll area ref for overlay like in Content
   const [stickyActive, setStickyActive] = useState(false);
   const scrollAreaRef = useRef(null);
 
-  const {
-    user,
-    isLoading,
-    watchlist,
-    watchedList,
-    likedList,
-    addMovieToWatchlist,
-    removeMovieFromWatchlist,
-    addMovieToLiked,
-    removeMovieFromLiked,
-    addMovieToWatched,
-    removeMovieFromWatched,
-    isMovieInList,
-  } = useUserData();
-
-  const toast = useToast();
-
-  // Helpers: parse AI text into titles and choose best TMDB result
-  function normalizeTitle(t){
-    return String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-  }
-  function chooseBestResult(results, target){
-    const nt = normalizeTitle(target);
-    let best = null; let bestScore = -1;
-    for(const r of (results||[])){
-      const rt = normalizeTitle(r.title || r.name || '');
-      let score = 0;
-      if(rt === nt) score += 100;
-      else if(rt.startsWith(nt) || nt.startsWith(rt)) score += 60;
-      score += (r.popularity||0)*0.01 + (r.vote_count||0)*0.001 + (r.vote_average||0);
-      if(r.poster_path) score += 5;
-      if(score > bestScore){ bestScore = score; best = r; }
-    }
-    return best;
-  }
-  function parseAiTitles(text){
-    return String(text||'')
-      .split(/\r?\n+/)
-      .map(l => l.replace(/^[-*•\d]+[\.)\s]+/, '').replace(/\s*\(\d{4}\).*/, '').trim())
-      .filter(Boolean)
-      .slice(0, 100);
-  }
-
-  // Load genres on component mount
   useEffect(() => {
-    const loadGenres = async () => {
+    const loadPersonData = async () => {
+      if (!personId) return;
+      
+      setLoading(true);
       try {
-        const genreData = await fetchGenres();
-        const genreMap = {};
-        (genreData || []).forEach(g => { if (g && g.id != null) genreMap[g.id] = g.name; });
-        setGenres(genreMap);
+        const [personData, moviesData] = await Promise.all([
+          getPersonDetails(personId),
+          getMoviesByPerson(personId)
+        ]);
+        
+        setPerson(personData);
+        setMovies(moviesData);
       } catch (error) {
-        console.error("Error loading genres:", error);
+        console.error('Error loading person data:', error);
+        toast.error('Failed to load crew member data');
+      } finally {
+        setLoading(false);
       }
     };
-    loadGenres();
-  }, []);
 
-  // Reset generation guard when user changes
-  useEffect(() => { hasGeneratedRef.current = false; }, [user]);
+    loadPersonData();
+  }, [personId, toast]);
 
-  // Generate when liked list has loaded and has items; if empty after load, show fallback but allow future regen when likes appear
-  useEffect(() => {
-    if (!user) return;
-    if (hasGeneratedRef.current) return;
-    if (isLoading) return;
-    if ((likedList || []).length > 0) {
-      hasGeneratedRef.current = true;
-      generateRecommendations();
-    } else {
-      // Show fallback (popular) without locking generation; will regenerate when likes appear
-      (async () => {
-        try {
-          const popularMovies = await fetchPopularTopMovies();
-          setRecommendedMovies(popularMovies.slice(0, 20));
-          setRecommendationReason('Trending picks while we learn your taste');
-        } catch (_) {}
-      })();
-    }
-  }, [user, isLoading, likedList]);
-
-  const generateRecommendations = async () => {
-    setLoading(true);
-    try {
-      // Prompt: use only liked movies
-      const likedTitles = likedList.slice(0, 15).map(m => m.title).filter(Boolean);
-      const likedSample = likedList.slice(0, 10);
-
-      // Learn patterns from liked movies
-      const genreNames = (ids) => (ids || []).map(id => genres[id]).filter(Boolean);
-      const genreFreq = new Map();
-      likedSample.forEach(m => {
-        for (const g of genreNames(m.genre_ids || [])) {
-          genreFreq.set(g, (genreFreq.get(g) || 0) + 1);
-        }
-      });
-      const topGenres = Array.from(genreFreq.entries()).sort((a,b) => b[1]-a[1]).slice(0,5).map(([g]) => g);
-
-      // Fetch crew and providers for a small sample (parallel)
-      const details = await Promise.all(likedSample.map(async (m) => {
-        try {
-          const [castData, providersData] = await Promise.all([
-            fetchCast(m.id),
-            fetchWatchProviders(m.id, 'US').catch(()=>({}))
-          ]);
-          const topCast = (castData?.cast || []).slice(0,3).map(p => p.name).filter(Boolean);
-          const director = castData?.director?.name ? [castData.director.name] : [];
-          const providerNames = [];
-          for (const key of ['flatrate','free','ads','rent','buy']){
-            if (Array.isArray(providersData?.[key])) providerNames.push(...providersData[key].map(p=>p.provider_name).filter(Boolean));
-          }
-          return { cast:[...director, ...topCast], providers: providerNames };
-        } catch(_) { return { cast:[], providers:[] }; }
-      }));
-
-      const castFreq = new Map();
-      const providerFreq = new Map();
-      for (const d of details){
-        for (const name of d.cast){ castFreq.set(name, (castFreq.get(name)||0)+1); }
-        for (const p of d.providers){ providerFreq.set(p, (providerFreq.get(p)||0)+1); }
-      }
-      const topCrew = Array.from(castFreq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n])=>n);
-      const topProviders = Array.from(providerFreq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n])=>n);
-
-      const prompt = `User liked these movies: ${likedTitles.join(', ')}.
-
-Learn from patterns in their taste:
-- Frequent genres: ${topGenres.join(', ') || 'N/A'}
-- Frequent directors/actors: ${topCrew.join(', ') || 'N/A'}
-- Common streaming availability: ${topProviders.join(', ') || 'N/A'}
-
-Recommend up to 100 movies they may also like, prioritizing matches to these patterns while adding some variety. Avoid duplicates and titles the user already liked. Output ONLY movie titles, one per line.`;
-
-      const aiResponse = await askOpenAI(prompt, {
-        temperature: 0.7,
-        system: 'You are a movie recommendation expert. Use ONLY the provided liked movies to infer taste. Return ONLY movie titles, one per line.'
-      });
-
-      // Show a friendly reason text rather than raw AI list
-      if (likedTitles.length > 0) {
-        setRecommendationReason(`Because you liked: ${likedTitles.join(', ')}`);
-      } else {
-        setRecommendationReason('Recommendations based on your liked movies');
-      }
-
-      // Parse AI titles and search TMDB to render cards
-      const titles = parseAiTitles(aiResponse);
-      setAiTitles(titles);
-      setAiTitleIndex(0);
-      setRecommendedMovies([]);
-      // Load first chunk
-      await loadMoreRecommendations(titles, 20);
-      if (recommendedMovies.length === 0 && titles.length === 0) {
-        const popularMovies = await fetchPopularTopMovies();
-        setRecommendedMovies(popularMovies.slice(0, 20));
-      }
-
-    } catch (error) {
-      console.error("Error generating recommendations:", error);
-      // Fallback to popular movies
-      try {
-        const popularMovies = await fetchPopularTopMovies();
-        setRecommendedMovies(popularMovies.slice(0, 20));
-      } catch (fallbackError) {
-        console.error("Error loading fallback movies:", fallbackError);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load more helper
-  const loadMoreRecommendations = async (allTitles = aiTitles, chunkSize = 20) => {
-    if (!allTitles || aiTitleIndex >= allTitles.length) return;
-    setLoadingMore(true);
-    const start = aiTitleIndex;
-    const end = Math.min(allTitles.length, start + chunkSize);
-    const subset = allTitles.slice(start, end);
-    let found = [];
-    for (const title of subset) {
-      try {
-        const results = await searchMovies(title);
-        const best = chooseBestResult(results, title);
-        if (best) found.push(best);
-      } catch (_) {}
-    }
-    // Dedupe with existing
-    const seen = new Set((recommendedMovies || []).map(m => m.id));
-    const next = [...recommendedMovies];
-    for (const m of found) {
-      if (m && !seen.has(m.id)) { seen.add(m.id); next.push(m); }
-    }
-    setRecommendedMovies(next);
-    setAiTitleIndex(end);
-    setLoadingMore(false);
-  };
-
-  // Handle movie selection for overlay
   const handleMovieSelect = async (movie) => {
     setSelectedMovie(movie);
     
@@ -283,48 +101,25 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
 
       // Load similar movies
       const similarData = await fetchSimilarMovies(movie.id);
-      setSimilarMovies(similarData.slice(0, 6));
+      setSimilarMovies(similarData);
 
-      // Load details for runtime
-      try {
-        const details = await fetchMovieDetails(movie.id);
-        setRuntime(details?.runtime || null);
-      } catch(_) { setRuntime(null); }
+      // Load movie details for runtime
+      const movieDetails = await fetchMovieDetails(movie.id);
+      if (movieDetails) {
+        setRuntime(movieDetails.runtime);
+      }
     } catch (error) {
-      console.error("Error loading movie details:", error);
+      console.error('Error loading movie data:', error);
     } finally {
       setProvidersLoading(false);
       setTrailerLoading(false);
       setCastLoading(false);
       setSimilarLoading(false);
     }
+
+    setShowOverlay(true);
   };
 
-  // Sync overlay when Card emits events
-  useEffect(() => {
-    const onLiked = (e) => {
-      const { movieId, liked } = e.detail || {};
-      if (selectedMovie && String(selectedMovie.id) === String(movieId)) setMovieLiked(!!liked);
-    };
-    const onWatchlist = (e) => {
-      const { movieId, inWatchlist } = e.detail || {};
-      if (selectedMovie && String(selectedMovie.id) === String(movieId)) setMovieInWatchlist(!!inWatchlist);
-    };
-    const off1 = on('movie:liked', onLiked);
-    const off2 = on('movie:watchlist', onWatchlist);
-    return () => { off1(); off2(); };
-  }, [selectedMovie]);
-
-  // Lock body scroll when overlay is open to prevent dual scrollbars
-  useEffect(() => {
-    if (selectedMovie) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
-    }
-  }, [selectedMovie]);
-
-  // Handle movie actions
   const handleMovieAction = (action, movie) => {
     const currentId = movie.id || `${movie.title}-${movie.release_date?.split('-')[0]}`;
     
@@ -334,7 +129,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
       poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '',
       rating: movie.vote_average,
       year: movie.release_date?.split('-')[0],
-      genres: movie.genre_ids ? movie.genre_ids.map(id => genres[id]).filter(Boolean) : []
+      genres: []
     };
     
     switch (action) {
@@ -380,8 +175,8 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
     }
   };
 
-  // Close overlay
   const closeOverlay = () => {
+    setShowOverlay(false);
     setSelectedMovie(null);
     setProviders(null);
     setTrailer(null);
@@ -390,151 +185,114 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
     setRuntime(null);
   };
 
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <Header />
+        <div style={styles.loadingContainer}>
+          <div style={styles.loadingSpinner}></div>
+          <p style={styles.loadingText}>Loading crew member...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!person) {
+    return (
+      <div style={styles.container}>
+        <Header />
+        <div style={styles.errorContainer}>
+          <h2 style={styles.errorTitle}>Crew Member Not Found</h2>
+          <p style={styles.errorText}>The requested crew member could not be found.</p>
+          <button style={styles.backButton} onClick={() => navigate(-1)}>
+            Go Back
+          </button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
-    <div className="ai-page" style={{ 
-      minHeight: '100vh', 
-      background: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${background})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed'
-    }}>
-      {/* Header Section */}
+    <div style={styles.container}>
       <Header />
-      <div className="ai-header" style={{
-        padding: '15px',
-        textAlign: 'center',
-        background: 'linear-gradient(135deg, rgba(255,0,136,0.1) 0%, rgba(0,179,255,0.1) 100%)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <h1 style={{
-          fontSize: '3rem',
-          fontWeight: 'bold',
-          background: 'linear-gradient(135deg, #ff0088 0%, #00b3ff 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          marginBottom: '10px',
-          textShadow: '0 2px 4px rgba(0,0,0,0.3)'
-        }}>
-          AI Recommendations
-        </h1>
-        {/* Toggle center like Watchlist */}
-        <p style={{
-          fontSize: '1.2rem',
-          color: 'rgba(255,255,255,0.8)',
-          maxWidth: '600px',
-          margin: '0 auto',
-          lineHeight: '1.6'
-        }}>
-          Discover your next favorite movie based on your watch history and preferences
-        </p>
-      </div>
-
-      {/* Recommendations Section */}
-      <div id="recommendations" className="recommendations-section" style={{ padding: '40px 20px' }}>
-        <div className="container" style={{ maxWidth: '1400px', margin: '0 auto' , direction: 'row', display: 'flex'}}>
-          <h2 style={{
-            fontSize: '2rem',
-            fontWeight: 'bold',
-            color: 'white',
-            marginBottom: '30px',
-            textAlign: 'center',
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-          }}>
-            Recommended for You
-          </h2>
-          {/* Ad Slot */}
-          <div style={{ margin: '40px 0', height: '100px', width: '100%'}}>
-            <AdSlot width={100} height={150} />
-          </div>
-          <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap: '14px', margin:'8px 0 20px' }}>
-            <a href="#recommendations" style={{
-              textDecoration:'none',
-              background:'linear-gradient(45deg, #ffd93d, #ffb347)',
-              color:'#181c24',
-              padding:'14px 26px',
-              borderRadius:'28px',
-              fontWeight:700,
-              boxShadow:'0 8px 24px rgba(255,217,61,0.25)',
-              border:'1px solid rgba(0,0,0,0.08)'
-            }}>Recommendations</a>
-            <div style={{
-              display:'inline-flex',
-              alignItems:'center',
-              gap:'10px',
-              background:'linear-gradient(90deg,rgba(255, 0, 230, 0.75) 0%, rgba(0, 0, 255, 0.75) 65%, rgba(0, 212, 255, 0.75) 100%)',
-              border:'1px solid rgba(255,255,255,0.15)',
-              color:'#eaeaea',
-              padding:'8px 24px',
-              borderRadius:'28px',
-              boxShadow:'0 8px 24px rgba(0,0,0,0.25)'
-            }}>
-              <span style={{ fontWeight:700 }}>Talk to AI</span>
-              <AI />
-            </div>
-          </div>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading recommendations...</span>
+      
+      {/* Person Header */}
+      <div style={styles.personHeader}>
+        <div style={styles.personInfo}>
+          <div style={styles.profileImageContainer}>
+            {person.profile_path ? (
+              <img 
+                src={`https://image.tmdb.org/t/p/w500${person.profile_path}`} 
+                alt={person.name}
+                style={styles.profileImage}
+              />
+            ) : (
+              <div style={styles.profilePlaceholder}>
+                <span style={styles.profilePlaceholderText}>
+                  {person.name.split(' ').map(n => n[0]).join('')}
+                </span>
               </div>
-              <p style={{ color: 'white', marginTop: '20px' }}>Analyzing your preferences...</p>
-            </div>
-          ) : (
-            <div className="movies-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)', // exactly 4 equal columns
-                gap: '30px',
-                padding: '20px 0',
-            }}>
-              {recommendedMovies.map((movie, index) => (
-                <div key={movie.id || index} style={{ position: 'relative' }}>
-                  <Card
-                    id={movie.id}
-                    title={movie.title}
-                    poster={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : posterFiller}
-                    rating={movie.vote_average}
-                    year={movie.release_date?.split('-')[0]}
-                    genres={movie.genre_ids ? movie.genre_ids.map(id => genres[id]).filter(Boolean) : []}
-                    onSelect={() => handleMovieSelect(movie)}
-                  />
-                </div>
-              ))}
-              {aiTitleIndex < aiTitles.length && (
-                <div style={{ gridColumn: '1 / -1', display:'flex', justifyContent:'center', marginTop: 10 }}>
-                  <button
-                    type="button"
-                    onClick={() => loadMoreRecommendations()}
-                    disabled={loadingMore}
-                    style={{
-                      padding:'12px 22px',
-                      borderRadius: 24,
-                      border:'none',
-                      background:'linear-gradient(45deg, #ffd93d, #ffb347)',
-                      color:'#181c24',
-                      fontWeight:700,
-                      cursor:'pointer',
-                      boxShadow:'0 8px 24px rgba(255,217,61,0.25)'
-                    }}
-                  >
-                    {loadingMore ? 'Loading…' : 'Load More'}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
+          
+          <div style={styles.personDetails}>
+            <h1 style={styles.personName}>{person.name}</h1>
+            {person.known_for_department && (
+              <p style={styles.department}>{person.known_for_department}</p>
+            )}
+            {person.biography && (
+              <div style={styles.biography}>
+                <h3 style={styles.biographyTitle}>Biography</h3>
+                <p style={styles.biographyText}>
+                  {person.biography.length > 500 
+                    ? `${person.biography.substring(0, 500)}...` 
+                    : person.biography
+                  }
+                </p>
+              </div>
+            )}
+            {person.birthday && (
+              <p style={styles.birthday}>
+                Born: {new Date(person.birthday).toLocaleDateString()}
+                {person.place_of_birth && ` in ${person.place_of_birth}`}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Talk to AI Section */}
-      {/* <div id="talk-ai" style={{ padding: '20px 20px 60px' }}>
-        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', display:'flex', justifyContent:'center' }}>
-          
-        </div>
-      </div> */}
+      {/* Movies Grid */}
+      <div style={styles.moviesSection}>
+        <h2 style={styles.sectionTitle}>
+          Filmography ({movies.length} movies)
+        </h2>
+        
+        {movies.length > 0 ? (
+          <div style={styles.moviesGrid}>
+            {movies.map((movie) => (
+              <Card
+                key={movie.id}
+                id={movie.id}
+                title={movie.title}
+                poster={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : posterFiller}
+                rating={movie.vote_average}
+                year={movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
+                genres={[]} // We don't have genres in this context
+                onSelect={() => handleMovieSelect(movie)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={styles.noMovies}>
+            <p style={styles.noMoviesText}>No movies found for this person.</p>
+          </div>
+        )}
+      </div>
 
-      {/* Movie Overlay Modal (mirrors Content overlay) */}
-      {selectedMovie && (
+      {/* Movie Overlay Modal (mirrors AI page overlay) */}
+      {showOverlay && selectedMovie && (
         <div
           role="dialog"
           aria-modal="true"
@@ -648,7 +406,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                style={{
+                      style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
@@ -657,7 +415,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                         borderRadius: "16px"
                       }}
                     />
-                </div>
+                  </div>
                 ) : (
                   <img
                     src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : posterFiller}
@@ -672,7 +430,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                     }}
                   />
                 )}
-            </div>
+              </div>
 
               {/* Content Section */}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -719,35 +477,25 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                   </span>
                 </div>
 
-                <div style={{ color:'rgba(255,255,255,0.85)', marginBottom: '8px' }}>
-                  {runtime ? `${runtime} min • ` : ''}{selectedMovie.release_date?.split('-')[0]}
+                {/* Movie Summary/Overview - ALWAYS SHOW */}
+                <div style={{ marginBottom: "28px" }}>
+                  <h3 style={{
+                    fontSize: "1.3rem",
+                    marginBottom: "12px",
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontWeight: "600",
+                    color: "#ffffff"
+                  }}>Summary</h3>
+                  <p style={{ 
+                    fontSize: '1rem', 
+                    lineHeight: '1.6', 
+                    color: '#b8c5d6',
+                    fontFamily: "'Inter', sans-serif",
+                    margin: 0
+                  }}>
+                    {selectedMovie.overview || "No summary available for this movie."}
+                  </p>
                 </div>
-                <p style={{ fontSize: '1rem', lineHeight: '1.6', marginBottom: '30px' }}>{selectedMovie.overview}</p>
-
-                {selectedMovie.genre_ids?.length > 0 && (
-                  <div style={{ marginBottom: "28px", display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                    {selectedMovie.genre_ids.map((id, index) => (
-                      genres[id] ? (
-                        <span
-                          key={id}
-                          className="genre-tag"
-                          style={{
-                            background: "rgba(255, 217, 61, 0.1)",
-                            color: "#ffd93d",
-                            border: "1px solid rgba(255, 217, 61, 0.3)",
-                            padding: "6px 14px",
-                            borderRadius: "18px",
-                            fontSize: "0.9rem",
-                            fontWeight: "500",
-                            animation: `fadeInUp 0.3s ease ${index * 0.1}s both`
-                          }}
-                        >
-                          {genres[id]}
-                        </span>
-                      ) : null
-                    ))}
-                  </div>
-                )}
 
                 {/* Cast Section */}
                 {cast && (
@@ -791,14 +539,14 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                                 fontSize: "0.75rem",
                                 color: "#ffd93d",
                                 fontWeight: "600",
-                                fontFamily: "\"Inter\", sans-serif"
+                                fontFamily: "'Inter', sans-serif"
                               }}>
                                 {person.name}
                               </div>
                               <div style={{
                                 fontSize: "0.7rem",
                                 color: "#b8c5d6",
-                                fontFamily: "\"Inter\", sans-serif"
+                                fontFamily: "'Inter', sans-serif"
                               }}>
                                 {person.character}
                               </div>
@@ -996,7 +744,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                     e.target.style.transform = "translateY(0)";
                   }}
                 >
-                  {movieLiked ? "💖 Liked" : "❤️ Like"}
+                  {movieLiked ? "��� Liked" : "❤️ Like"}
                 </button>
                 <button
                   className="btn-secondary"
@@ -1023,7 +771,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                     e.target.style.transform = "translateY(0)";
                   }}
                 >
-                  {movieWatched ? "✅ Watched" : "👁️ Mark as Watched"}
+                  {movieWatched ? "✅ Watched" : "���️ Mark as Watched"}
                 </button>
               </div>
 
@@ -1097,9 +845,193 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
           </div>
         </div>
       )}
+
       <Footer />
     </div>
   );
-}
+};
 
-export default AiPage;
+const styles = {
+  container: {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #2d3748 100%)',
+    color: '#ffffff'
+  },
+  
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '60vh',
+    gap: '20px'
+  },
+  
+  loadingSpinner: {
+    width: '50px',
+    height: '50px',
+    border: '4px solid rgba(255,255,255,0.1)',
+    borderTop: '4px solid #d53369',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite'
+  },
+  
+  loadingText: {
+    fontSize: '18px',
+    color: '#b8c5d6'
+  },
+  
+  errorContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '60vh',
+    gap: '20px',
+    textAlign: 'center'
+  },
+  
+  errorTitle: {
+    fontSize: '24px',
+    color: '#ff6b6b',
+    margin: 0
+  },
+  
+  errorText: {
+    fontSize: '16px',
+    color: '#b8c5d6',
+    margin: 0
+  },
+  
+  backButton: {
+    padding: '12px 24px',
+    background: 'linear-gradient(135deg, #d53369, #daae51)',
+    border: 'none',
+    borderRadius: '8px',
+    color: '#ffffff',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease'
+  },
+  
+  personHeader: {
+    padding: '40px 20px',
+    maxWidth: '1200px',
+    margin: '0 auto'
+  },
+  
+  personInfo: {
+    display: 'flex',
+    gap: '30px',
+    alignItems: 'flex-start'
+  },
+  
+  profileImageContainer: {
+    flexShrink: 0
+  },
+  
+  profileImage: {
+    width: '200px',
+    height: '300px',
+    objectFit: 'cover',
+    borderRadius: '12px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+  },
+  
+  profilePlaceholder: {
+    width: '200px',
+    height: '300px',
+    background: 'linear-gradient(135deg, #d53369, #daae51)',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+  },
+  
+  profilePlaceholderText: {
+    fontSize: '48px',
+    fontWeight: 'bold',
+    color: '#ffffff'
+  },
+  
+  personDetails: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px'
+  },
+  
+  personName: {
+    fontSize: '36px',
+    fontWeight: 'bold',
+    margin: 0,
+    background: 'linear-gradient(135deg, #d53369, #daae51)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    backgroundClip: 'text'
+  },
+  
+  department: {
+    fontSize: '18px',
+    color: '#b8c5d6',
+    margin: 0,
+    fontWeight: '500'
+  },
+  
+  biography: {
+    marginTop: '10px'
+  },
+  
+  biographyTitle: {
+    fontSize: '20px',
+    fontWeight: '600',
+    margin: '0 0 10px 0',
+    color: '#ffffff'
+  },
+  
+  biographyText: {
+    fontSize: '16px',
+    lineHeight: '1.6',
+    color: '#b8c5d6',
+    margin: 0
+  },
+  
+  birthday: {
+    fontSize: '16px',
+    color: '#b8c5d6',
+    margin: 0
+  },
+  
+  moviesSection: {
+    padding: '0 20px 40px',
+    maxWidth: '1200px',
+    margin: '0 auto'
+  },
+  
+  sectionTitle: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    margin: '0 0 30px 0',
+    color: '#ffffff'
+  },
+  
+  moviesGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+    gap: '20px'
+  },
+  
+  noMovies: {
+    textAlign: 'center',
+    padding: '60px 20px'
+  },
+  
+  noMoviesText: {
+    fontSize: '18px',
+    color: '#b8c5d6'
+  }
+};
+
+export default CrewMember;
