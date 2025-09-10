@@ -646,7 +646,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                      style={{
+                style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
@@ -655,7 +655,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                         borderRadius: "16px"
                       }}
                     />
-                  </div>
+                </div>
                 ) : (
                   <img
                     src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : posterFiller}
@@ -670,7 +670,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                     }}
                   />
                 )}
-              </div>
+            </div>
 
               {/* Content Section */}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -946,8 +946,8 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
                         ))}
                       </div>
                     )}
-                  </div>
-                )}
+                </div>
+              )}
               </div>
             </div>
 

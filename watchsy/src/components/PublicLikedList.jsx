@@ -59,7 +59,7 @@ export default function PublicLikedList(){
   return (
     <div className="share-container">
       <Header onSearch={() => {}} />
-      <div className="share-content">
+      <div className="share-content" style={{ minHeight: '60vh' }}>
         <h1 className="content-title" style={{ color: 'white', textAlign: 'center', marginBottom: 20 }}>Shared Liked</h1>
         {canSeeLiked ? (
           <div className="share-previewRow">
@@ -71,7 +71,7 @@ export default function PublicLikedList(){
           <div className="share-noPreview" style={{color:'#fff', textAlign:'center', height:'60vh', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'2rem'}}>This list is private</div>
         )}
       </div>
-      <Footer />
+      <Footer style={{ position: 'fixed', bottom: 0, width: '100%' }} />
     </div>
   );
 } 

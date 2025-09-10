@@ -954,7 +954,7 @@ function Content({ searchQuery }) {
   </>
 ) : key === 'free' ? (
   <>
-    <img src={brokenHeart} alt="Free" style={{ width: "25px", height: "25px" }} />
+    <img src={heart} alt="Free" style={{ width: "25px", height: "25px" }} />
     Free
   </>
 ) : key === 'ads' ? (

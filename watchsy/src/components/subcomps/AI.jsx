@@ -359,7 +359,7 @@ export default function AI() {
                     : styles.msgUser;
                   return (
                     <div key={i} style={bubbleStyle}>
-                      <div style={styles.msgText} className="ai-msg">{renderMessage(m.text)}</div>
+                    <div style={styles.msgText} className="ai-msg">{renderMessage(m.text)}</div>
                       {showAdd && (
                       <button
                         type="button"
@@ -370,7 +370,7 @@ export default function AI() {
                         ➕ Add to Watch List
                       </button>
                       )}
-                    </div>
+                  </div>
                   );
                 })}
                 {isTyping && (

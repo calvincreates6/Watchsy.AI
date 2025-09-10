@@ -78,7 +78,7 @@ export default function PublicWatchlist(){
   return (
     <div className="share-container">
       <Header onSearch={() => {}} />
-      <div className="share-content">
+      <div className="share-content" style={{ minHeight: '60vh' }}>
         <h1 className="content-title" style={{ color: 'white', textAlign: 'center', marginBottom: 20 }}>Shared Watchlist</h1>
 
         <div className="list-toggle" style={{ display:'flex', gap:12, justifyContent:'center', marginBottom:16 }}>
@@ -118,7 +118,7 @@ export default function PublicWatchlist(){
           )
         )}
       </div>
-      <Footer />
+      <Footer  />
     </div>
   );
 } 
