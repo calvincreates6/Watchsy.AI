@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import Card from "./subcomps/Card";
-import { fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies, searchMovies } from "../api/tmdb";
+import { fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies, searchMovies, fetchMovieDetails } from "../api/tmdb";
 import background from "../assets/movie_bg.jpg";
 import castAndCrew from "../assets/cast and crew.png";
 import buy from "../assets/buy.png";
@@ -32,6 +32,7 @@ function AiPage() {
   const [similarMovies, setSimilarMovies] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [recommendationReason, setRecommendationReason] = useState("");
+  const [runtime, setRuntime] = useState(null);
   // For Load More pagination
   const [aiTitles, setAiTitles] = useState([]);
   const [aiTitleIndex, setAiTitleIndex] = useState(0);
@@ -135,9 +136,52 @@ function AiPage() {
     try {
       // Prompt: use only liked movies
       const likedTitles = likedList.slice(0, 15).map(m => m.title).filter(Boolean);
+      const likedSample = likedList.slice(0, 10);
+
+      // Learn patterns from liked movies
+      const genreNames = (ids) => (ids || []).map(id => genres[id]).filter(Boolean);
+      const genreFreq = new Map();
+      likedSample.forEach(m => {
+        for (const g of genreNames(m.genre_ids || [])) {
+          genreFreq.set(g, (genreFreq.get(g) || 0) + 1);
+        }
+      });
+      const topGenres = Array.from(genreFreq.entries()).sort((a,b) => b[1]-a[1]).slice(0,5).map(([g]) => g);
+
+      // Fetch crew and providers for a small sample (parallel)
+      const details = await Promise.all(likedSample.map(async (m) => {
+        try {
+          const [castData, providersData] = await Promise.all([
+            fetchCast(m.id),
+            fetchWatchProviders(m.id, 'US').catch(()=>({}))
+          ]);
+          const topCast = (castData?.cast || []).slice(0,3).map(p => p.name).filter(Boolean);
+          const director = castData?.director?.name ? [castData.director.name] : [];
+          const providerNames = [];
+          for (const key of ['flatrate','free','ads','rent','buy']){
+            if (Array.isArray(providersData?.[key])) providerNames.push(...providersData[key].map(p=>p.provider_name).filter(Boolean));
+          }
+          return { cast:[...director, ...topCast], providers: providerNames };
+        } catch(_) { return { cast:[], providers:[] }; }
+      }));
+
+      const castFreq = new Map();
+      const providerFreq = new Map();
+      for (const d of details){
+        for (const name of d.cast){ castFreq.set(name, (castFreq.get(name)||0)+1); }
+        for (const p of d.providers){ providerFreq.set(p, (providerFreq.get(p)||0)+1); }
+      }
+      const topCrew = Array.from(castFreq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n])=>n);
+      const topProviders = Array.from(providerFreq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n])=>n);
+
       const prompt = `User liked these movies: ${likedTitles.join(', ')}.
 
-Recommend up to 100 movies they may also like (diverse genres, avoid duplicates and already-liked titles). Output ONLY movie titles, one per line.`;
+Learn from patterns in their taste:
+- Frequent genres: ${topGenres.join(', ') || 'N/A'}
+- Frequent directors/actors: ${topCrew.join(', ') || 'N/A'}
+- Common streaming availability: ${topProviders.join(', ') || 'N/A'}
+
+Recommend up to 100 movies they may also like, prioritizing matches to these patterns while adding some variety. Avoid duplicates and titles the user already liked. Output ONLY movie titles, one per line.`;
 
       const aiResponse = await askOpenAI(prompt, {
         temperature: 0.7,
@@ -238,6 +282,12 @@ Recommend up to 100 movies they may also like (diverse genres, avoid duplicates 
       // Load similar movies
       const similarData = await fetchSimilarMovies(movie.id);
       setSimilarMovies(similarData.slice(0, 6));
+
+      // Load details for runtime
+      try {
+        const details = await fetchMovieDetails(movie.id);
+        setRuntime(details?.runtime || null);
+      } catch(_) { setRuntime(null); }
     } catch (error) {
       console.error("Error loading movie details:", error);
     } finally {
@@ -335,6 +385,7 @@ Recommend up to 100 movies they may also like (diverse genres, avoid duplicates 
     setTrailer(null);
     setCast(null);
     setSimilarMovies([]);
+    setRuntime(null);
   };
 
   return (
@@ -595,7 +646,7 @@ Recommend up to 100 movies they may also like (diverse genres, avoid duplicates 
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
-                      style={{
+                style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
@@ -604,7 +655,7 @@ Recommend up to 100 movies they may also like (diverse genres, avoid duplicates 
                         borderRadius: "16px"
                       }}
                     />
-                  </div>
+                </div>
                 ) : (
                   <img
                     src={selectedMovie.poster_path ? `https://image.tmdb.org/t/p/w500${selectedMovie.poster_path}` : posterFiller}
@@ -619,7 +670,7 @@ Recommend up to 100 movies they may also like (diverse genres, avoid duplicates 
                     }}
                   />
                 )}
-              </div>
+            </div>
 
               {/* Content Section */}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -660,25 +711,16 @@ Recommend up to 100 movies they may also like (diverse genres, avoid duplicates 
                   }}>
                     ⭐ {selectedMovie.vote_average?.toFixed(1)}
                   </div>
-                  <span className="content-body" style={{
-                    color: "#b8c5d6",
-                    fontSize: "1.1rem",
-                    fontFamily: "'Inter', sans-serif"
-                  }}>
+                  <span className="content-body" style={{ color: "#b8c5d6", fontSize: "1.1rem", fontFamily: "'Inter', sans-serif" }}>
+                    {runtime ? `${runtime} min • ` : ''}
                     <img src={calendar} alt="Release date" style={{ width: "25px", height: "25px" }} /> {selectedMovie.release_date?.split("-")[0] || "—"}
                   </span>
                 </div>
 
-                <p className="content-body" style={{
-                  color: "#d1d8e0",
-                  lineHeight: "1.7",
-                  marginBottom: "24px",
-                  fontSize: "1.1rem",
-                  fontFamily: "'Inter', sans-serif",
-                  fontWeight: "400"
-                }}>
-                  {selectedMovie.overview || "No overview available."}
-                </p>
+                <div style={{ color:'rgba(255,255,255,0.85)', marginBottom: '8px' }}>
+                  {runtime ? `${runtime} min • ` : ''}{selectedMovie.release_date?.split('-')[0]}
+                </div>
+                <p style={{ fontSize: '1rem', lineHeight: '1.6', marginBottom: '30px' }}>{selectedMovie.overview}</p>
 
                 {selectedMovie.genre_ids?.length > 0 && (
                   <div style={{ marginBottom: "28px", display: "flex", flexWrap: "wrap", gap: "10px" }}>
@@ -904,8 +946,8 @@ Recommend up to 100 movies they may also like (diverse genres, avoid duplicates 
                         ))}
                       </div>
                     )}
-                  </div>
-                )}
+                </div>
+              )}
               </div>
             </div>
 

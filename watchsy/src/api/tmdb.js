@@ -1,6 +1,6 @@
 // src/api/tmdb.js
-const API_KEY = '8673024fa7d8ce1503e7babaf5656789';  // Replace this with your actual key
-const BASE_URL = 'https://api.themoviedb.org/3';
+const API_KEY = process.env.REACT_APP_TMDB_API_KEY;
+const BASE_URL = process.env.REACT_APP_TMDB_BASE_URL;
 
 export async function searchMovies(query) {
   const res = await fetch(`${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
@@ -110,6 +110,18 @@ export async function fetchSimilarMovies(movieId) {
   } catch (error) {
     console.error('Error fetching similar movies:', error);
     return [];
+  }
+}
+
+// Fetch detailed information for a movie (runtime, etc.)
+export async function fetchMovieDetails(movieId) {
+  try {
+    const res = await fetch(`${BASE_URL}/movie/${movieId}?api_key=${API_KEY}`);
+    if (!res.ok) throw new Error('Failed to fetch movie details');
+    return await res.json();
+  } catch (error) {
+    console.error('Error fetching movie details:', error);
+    return null;
   }
 }
 

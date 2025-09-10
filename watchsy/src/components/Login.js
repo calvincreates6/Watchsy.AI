@@ -7,6 +7,7 @@ import eye from "../assets/eye.png";
 import hide from "../assets/hiding eyes monkey.png";
 import star from "../assets/star.png";
 import videoReel from "../assets/video reel.png";
+import tv from "../assets/tv.png";
 import checkList from "../assets/checklist.png";
 import { useToast } from "./ToastProvider";
 import {
@@ -17,6 +18,7 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   TwitterAuthProvider,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import loginPageImage from "../assets/Movie-login-bg.jpg";
@@ -75,6 +77,25 @@ const Login = () => {
     });
     return () => { if (timerId) clearTimeout(timerId); unsub && unsub(); };
   }, [navigate, toast]);
+
+  const handlePasswordReset = async (e) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const authInstance = getAuth();
+    if (!email.trim()) {
+      try { if (toast && typeof toast.info === 'function') toast.info('Enter your email above to reset password'); } catch(_) {}
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(authInstance, email.trim());
+      try { if (toast && typeof toast.success === 'function') toast.success('Password reset email sent'); } catch(_) {}
+    } catch (error) {
+      const msg = getAuthErrorMessage(error);
+      try { if (toast && typeof toast.error === 'function') toast.error(msg); } catch(_) {}
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const googleprovider = new GoogleAuthProvider();
   const twitterProvider = new TwitterAuthProvider();
@@ -233,6 +254,7 @@ const Login = () => {
         {/* Main Container */}
         <div className="login-page" style={styles.loginPage}>
         <div className="login-container" style={styles.outerContainer}>
+          
         <div className="textGrid" style={styles.textGrid}>
           <h1 style={styles.textGridTitle} className="content-title">
             Discover with <br /><span style={styles.titleHighlight}>Watchsy AI</span>
@@ -254,6 +276,10 @@ const Login = () => {
               <span>Save and Share your favorite movies</span>
             </div>
           </div>
+          
+        </div>
+        <div style={{ display: 'absolute', marginRight: '900px', marginBottom: '-715px', zIndex: '1000' }}>
+        <a style={{ color: '#999999', fontSize: '14px' }}>Picture by <a href="https://www.pexels.com/photo/white-screen-projector-by-the-beach-2507025/" style={{ color: '#ffd93d' }}>Pexels</a></a>
         </div>
           <div style={styles.container}>
             {/* Logo */}
@@ -375,6 +401,13 @@ const Login = () => {
                       >
                         <img src={showConfirmPassword ? hide : eye} alt="Toggle confirm password" style={{ width: "25px", height: "25px" }} />
                       </button>
+                    </div>
+                  )}
+
+                  {/* Forgot Password */}
+                  {!isSignUp && (
+                    <div style={{ textAlign:'right', marginTop: 6 }}>
+                      <button type="button" onClick={handlePasswordReset} disabled={isLoading} style={styles.textLink} className="text-link accent-text">Forgot password?</button>
                     </div>
                   )}
 
@@ -537,12 +570,12 @@ const styles = {
     height: "18px",
   },
   container: { 
-    background: "linear-gradient(90deg, rgba(240, 200, 200, 0.7) 0%, rgba(0,0,0,0.25) 100%)",
-    backdropFilter: "blur(20px)",
+    background: "linear-gradient(90deg,rgba(255, 169, 169, 0.4) 20%, rgba(0, 0, 0, 0.2) 100%)",
+    backdropFilter: "blur(4px)",
     borderRadius: "24px",
     padding: "40px",
     boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
-    // border: "1px solid rgba(255, 217, 61, 0.2)",
+    border: "1px solid rgba(36, 100, 202, 0.3)",
     maxWidth: "400px",
     width: "100%",
     textAlign: "center",
@@ -589,9 +622,9 @@ const styles = {
   emailBtn: { 
     padding: "16px 24px", 
     borderRadius: "50px",
-    border: "none",
-    background: "linear-gradient(135deg, #ffd93d 0%, #ff6b6b 100%)",
-    color: "#181c24",
+    border: "2px solid #ff6b6b",
+    background: "linear-gradient(135deg, #ffd93d 0%,rgb(255, 45, 45) 100%)",
+    color: "white",
     fontSize: "16px",
     fontWeight: "600",
     cursor: "pointer",
@@ -602,7 +635,7 @@ const styles = {
     padding: "16px 24px", 
     borderRadius: "50px",
     border: "2px solid rgb(255, 217, 61, 0.5)",
-    background: "rgba(95, 48, 10, 0.8)",
+    background: "rgba(94, 65, 41, 0.8)",
     color: "#f5f6fa",
     fontSize: "16px",
     fontWeight: "600",

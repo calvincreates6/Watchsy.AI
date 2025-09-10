@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import Card from "./Card";
-import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies } from "../../api/tmdb";
+import { searchMovies, fetchGenres, fetchPopularTopMovies, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies, fetchMovieDetails } from "../../api/tmdb";
 import background from "../../assets/movie_bg.jpg";
 import movieClapperboard from "../../assets/movie clapperboard.png";
 import castAndCrew from "../../assets/cast and crew.png";
@@ -38,6 +38,7 @@ function Content({ searchQuery }) {
   const [castLoading, setCastLoading] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]); // Similar movies
   const [similarLoading, setSimilarLoading] = useState(false);
+  const [runtime, setRuntime] = useState(null);
   const [stickyActive, setStickyActive] = useState(false);
   const scrollAreaRef = useRef(null);
 
@@ -318,6 +319,7 @@ function Content({ searchQuery }) {
     setTrailer(null);
     setCast(null);
     setSimilarMovies([]);
+    setRuntime(null);
     // Clear movie status states
     setMovieLiked(false);
     setMovieWatched(false);
@@ -362,6 +364,14 @@ function Content({ searchQuery }) {
         setCast(null);
       } finally {
         setCastLoading(false);
+      }
+
+      // Load details (runtime)
+      try {
+        const details = await fetchMovieDetails(selectedMovie.id);
+        setRuntime(details?.runtime || null);
+      } catch (e) {
+        setRuntime(null);
       }
 
       // Load similar movies
@@ -817,11 +827,8 @@ function Content({ searchQuery }) {
                       }}>
                         ⭐ {selectedMovie.vote_average?.toFixed(1)}
                       </div>
-                      <span className="content-body" style={{
-                        color: "#b8c5d6",
-                        fontSize: "1.1rem",
-                        fontFamily: "'Inter', sans-serif"
-                      }}>
+                      <span className="content-body" style={{ color: "#b8c5d6", fontSize: "1.1rem", fontFamily: "'Inter', sans-serif" }}>
+                        {runtime ? `${runtime} min • ` : ''}
                         <img src={calendar} alt="Release date" style={{ width: "25px", height: "25px" }} /> {selectedMovie.release_date?.split("-")[0] || "—"}
                       </span>
                     </div>
@@ -947,7 +954,7 @@ function Content({ searchQuery }) {
   </>
 ) : key === 'free' ? (
   <>
-    <img src={brokenHeart} alt="Free" style={{ width: "25px", height: "25px" }} />
+    <img src={heart} alt="Free" style={{ width: "25px", height: "25px" }} />
     Free
   </>
 ) : key === 'ads' ? (

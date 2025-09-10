@@ -68,3 +68,33 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Environment Setup
+
+This project requires several API keys to function properly. Follow these steps to set up your environment:
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fill in your API keys in the `.env` file:
+   - **Firebase**: Get your Firebase config from the Firebase Console
+   - **TMDB**: Get your API key from [The Movie Database](https://www.themoviedb.org/settings/api)
+   - **OpenAI**: Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+
+3. Make sure your `.env` file is never committed to version control (it's already in `.gitignore`)
+
+### Required Environment Variables
+
+- `REACT_APP_FIREBASE_API_KEY` - Firebase API key
+- `REACT_APP_FIREBASE_AUTH_DOMAIN` - Firebase auth domain
+- `REACT_APP_FIREBASE_PROJECT_ID` - Firebase project ID
+- `REACT_APP_FIREBASE_STORAGE_BUCKET` - Firebase storage bucket
+- `REACT_APP_FIREBASE_MESSAGING_SENDER_ID` - Firebase messaging sender ID
+- `REACT_APP_FIREBASE_APP_ID` - Firebase app ID
+- `REACT_APP_FIREBASE_MEASUREMENT_ID` - Firebase measurement ID
+- `REACT_APP_TMDB_API_KEY` - The Movie Database API key
+- `REACT_APP_TMDB_BASE_URL` - TMDB API base URL (https://api.themoviedb.org/3)
+- `REACT_APP_OPENAI_API_KEY` - OpenAI API key
+
