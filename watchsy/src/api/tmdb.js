@@ -263,3 +263,83 @@ export async function fetchPopularTopMovies() {
     return [];
   }
 }
+
+// Search for people (actors, directors, etc.)
+export async function searchPeople(query) {
+  try {
+    const res = await fetch(`${BASE_URL}/search/person?api_key=${API_KEY}&query=${encodeURIComponent(query)}`);
+    if (!res.ok) throw new Error("Failed to fetch people");
+    const data = await res.json();
+    return data.results;
+  } catch (error) {
+    console.error('Error searching people:', error);
+    return [];
+  }
+}
+
+// Get movies by person ID (actor's filmography)
+export async function getMoviesByPerson(personId) {
+  try {
+    const res = await fetch(`${BASE_URL}/person/${personId}/movie_credits?api_key=${API_KEY}`);
+    if (!res.ok) throw new Error("Failed to fetch person's movies");
+    const data = await res.json();
+    
+    // Return cast movies (where they acted) with basic info
+    return data.cast
+      .filter(movie => movie.poster_path && movie.vote_average > 0)
+      .sort((a, b) => new Date(b.release_date || 0) - new Date(a.release_date || 0)) // Sort by release date, newest first
+      .map(movie => ({
+        id: movie.id,
+        title: movie.title,
+        poster_path: movie.poster_path,
+        vote_average: movie.vote_average,
+        release_date: movie.release_date,
+       character: movie.character,
+        popularity: movie.popularity
+      }));
+  } catch (error) {
+    console.error('Error fetching movies by person:', error);
+    return [];
+  }
+}
+
+// Get person details
+export async function getPersonDetails(personId) {
+  try {
+    const res = await fetch(`${BASE_URL}/person/${personId}?api_key=${API_KEY}`);
+    if (!res.ok) throw new Error("Failed to fetch person details");
+    return await res.json();
+  } catch (error) {
+    console.error('Error fetching person details:', error);
+    return null;
+  }
+}
+
+// Combined function: search for actor and get their movies
+export async function searchMoviesByActor(actorName) {
+  try {
+    // First, search for the person
+    const people = await searchPeople(actorName);
+    if (people.length === 0) return { person: null, movies: [] };
+    
+    // Get the first (most relevant) result
+    const person = people[0];
+    
+    // Get their movies
+    const movies = await getMoviesByPerson(person.id);
+    
+    return {
+      person: {
+        id: person.id,
+        name: person.name,
+        profile_path: person.profile_path,
+        known_for_department: person.known_for_department,
+        popularity: person.popularity
+      },
+      movies: movies
+    };
+  } catch (error) {
+    console.error('Error searching movies by actor:', error);
+    return { person: null, movies: [] };
+  }
+}
