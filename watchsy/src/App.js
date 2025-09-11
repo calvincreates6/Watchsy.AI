@@ -17,6 +17,7 @@ import PublicLikedList from "./components/PublicLikedList";
 import About from "./components/static/About";
 import Contact from "./components/static/Contact";
 import Legal from "./components/static/Legal";
+import PricingPage from "./components/static/PricingPage";
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -136,6 +137,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/legal" element={<Legal />} />
+          <Route path="/pricing" element={<PricingPage />} />
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
