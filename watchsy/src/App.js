@@ -11,6 +11,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { ToastProvider } from "./components/ToastProvider";
 import SharePage from "./components/SharePage";
 import AiPage from "./components/AiPage";
+import CrewMember from "./components/CrewMember";
 import PublicWatchlist from "./components/PublicWatchlist";
 import PublicLikedList from "./components/PublicLikedList";
 import About from "./components/static/About";
@@ -28,11 +29,23 @@ function ProtectedRoute({ children }) {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        background: 'var(--color-bg)',
-        color: 'var(--color-text)'
+        background: 'linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #2d3748 100%)',
+        color: '#ffffff'
       }}>
-        <div className="spinner-border" role="status">
-          <span className="visually-hidden">Loading...</span>
+        <div style={{
+          textAlign: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '4px solid rgba(255,255,255,0.1)',
+            borderTop: '4px solid #d53369',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px'
+          }}></div>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -41,7 +54,7 @@ function ProtectedRoute({ children }) {
   return user ? children : <Navigate to="/login" replace />;
 }
 
-// Public Route Component (redirects to home if already authenticated)
+// Public Route Component (for login page)
 function PublicRoute({ children }) {
   const [user, loading] = useAuthState(auth);
 
@@ -52,11 +65,23 @@ function PublicRoute({ children }) {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        background: 'var(--color-bg)',
-        color: 'var(--color-text)'
+        background: 'linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #2d3748 100%)',
+        color: '#ffffff'
       }}>
-        <div className="spinner-border" role="status">
-          <span className="visually-hidden">Loading...</span>
+        <div style={{
+          textAlign: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '4px solid rgba(255,255,255,0.1)',
+            borderTop: '4px solid #d53369',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 20px'
+          }}></div>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -119,6 +144,12 @@ function App() {
           <Route path="/ai" element={
             <ProtectedRoute>
               <AiPage />
+            </ProtectedRoute>
+          } />
+          {/* Crew member page */}
+          <Route path="/person/:personId" element={
+            <ProtectedRoute>
+              <CrewMember />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
