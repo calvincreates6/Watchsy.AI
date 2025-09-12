@@ -5,7 +5,6 @@ import { useUserData } from "../../hooks/useUserData";
 import { emit, on } from "../../events/bus";
 import { useToast } from "../ToastProvider";
 import posterFiller from "../../assets/posterFiller.jpg";
-import { voteOnMovie, getUserVote, getMovieVotes } from "../../services/votes-real";
 
 function Card(props) {
   let movieId = -1;
@@ -14,9 +13,6 @@ function Card(props) {
 
   const [watchStatus, setWatchStatus] = useState("none"); // "none", "watchLater", "watched"
   const [liked, setLiked] = useState(false);
-  const [userVote, setUserVote] = useState(0);
-  const [movieVotes, setMovieVotes] = useState({ likes: 0, dislikes: 0, total: 0, likePercentage: 0 });
-  const [voteLoading, setVoteLoading] = useState(false);
 
   const {
     user,
@@ -30,37 +26,9 @@ function Card(props) {
     isMovieInList,
   } = useUserData();
 
-  const currentId = props.id || `${props.title}-${props.year}`;
   const toast = useToast();
 
-  // Load votes when component mounts or user changes
-  useEffect(() => {
-    const loadVotes = async () => {
-      try {
-        console.log('Loading votes for movie:', currentId);
-        const [userVoteResult, movieVotesResult] = await Promise.all([
-          user ? getUserVote(user, currentId) : Promise.resolve({ success: true, vote: 0 }),
-          getMovieVotes(currentId)
-        ]);
-
-        console.log('User vote result:', userVoteResult);
-        console.log('Movie votes result:', movieVotesResult);
-
-        if (userVoteResult.success) {
-          setUserVote(userVoteResult.vote);
-        }
-
-        if (movieVotesResult.success) {
-          setMovieVotes(movieVotesResult.votes);
-          console.log('Set movie votes:', movieVotesResult.votes);
-        }
-      } catch (error) {
-        console.error('Error loading votes:', error);
-      }
-    };
-
-    loadVotes();
-  }, [currentId, user]);
+  const currentId = props.id || `${props.title}-${props.year}`;
 
   // Initialize from lists
   useEffect(() => {
@@ -195,47 +163,8 @@ function Card(props) {
       }).catch(() => {
         setLiked(prev);
         emit('movie:liked', { movieId: movie.id, liked: prev });
-        toast.error("Failed to remove from liked");
+        toast.error("Failed to add to liked");
       });
-    }
-  };
-
-  const handleVote = async (voteValue) => {
-    if (!user) {
-      toast.info("Please sign in to vote");
-      return;
-    }
-
-    console.log('Voting:', { voteValue, currentId, user: user.uid });
-    setVoteLoading(true);
-    try {
-      const result = await voteOnMovie(user, currentId, voteValue);
-      console.log('Vote result:', result);
-      
-      if (result.success) {
-        setUserVote(voteValue);
-        toast.success(`Vote recorded! ${voteValue === 1 ? 'Liked' : 'Disliked'} this movie.`);
-        
-        // Refresh vote counts after a delay
-        setTimeout(async () => {
-          try {
-            const movieVotesResult = await getMovieVotes(currentId);
-            console.log('Refreshed votes:', movieVotesResult);
-            if (movieVotesResult.success) {
-              setMovieVotes(movieVotesResult.votes);
-            }
-          } catch (error) {
-            console.error('Error refreshing votes:', error);
-          }
-        }, 2000); // Increased delay to 2 seconds
-      } else {
-        toast.error(result.error || "Failed to vote");
-      }
-    } catch (error) {
-      console.error('Error voting:', error);
-      toast.error("Failed to vote");
-    } finally {
-      setVoteLoading(false);
     }
   };
 
@@ -257,7 +186,7 @@ function Card(props) {
       case "watched":
         return { text: " Remove", className: "btn-primary", icon: "‚ùå" };
       default:
-        return { text: " Mark to Watch", className: "btn-primary", icon: "Ì±Ä" };
+        return { text: " Mark to Watch", className: "btn-primary", icon: "üëÄ" };
     }
   };
 
@@ -313,92 +242,8 @@ function Card(props) {
               fontFamily: "'Inter', sans-serif"
             }}
           >
-            {liked ? "Ì≤ñ Liked" : "‚ù§Ô∏è Like"}
+            {liked ? "üíñ Liked" : "‚ù§Ô∏è Like"}
           </button>
-        </div>
-
-        {/* Vote Buttons with percentages inside */}
-        <div className="vote-buttons" style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVote(1); }}
-            disabled={voteLoading}
-            style={{
-              flex: 1,
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "1px solid",
-              background: userVote === 1 ? "rgba(74, 222, 128, 0.2)" : "rgba(74, 222, 128, 0.1)",
-              borderColor: userVote === 1 ? "#4ade80" : "rgba(74, 222, 128, 0.3)",
-              color: userVote === 1 ? "#4ade80" : "#b8c5d6",
-              fontSize: "12px",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              opacity: voteLoading ? 0.6 : 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "2px"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span>Ì±ç</span>
-              <span>Like</span>
-            </div>
-            <div style={{ fontSize: "10px", opacity: 0.8 }}>
-              {movieVotes.total > 0 ? `${movieVotes.likePercentage}%` : '0%'}
-            </div>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVote(-1); }}
-            disabled={voteLoading}
-            style={{
-              flex: 1,
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "1px solid",
-              background: userVote === -1 ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)",
-              borderColor: userVote === -1 ? "#ef4444" : "rgba(239, 68, 68, 0.3)",
-              color: userVote === -1 ? "#ef4444" : "#b8c5d6",
-              fontSize: "12px",
-              fontWeight: "600",
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-              opacity: voteLoading ? 0.6 : 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "2px"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span>Ì±é</span>
-              <span>Dislike</span>
-            </div>
-            <div style={{ fontSize: "10px", opacity: 0.8 }}>
-              {movieVotes.total > 0 ? `${100 - movieVotes.likePercentage}%` : '0%'}
-            </div>
-          </button>
-        </div>
-
-        {/* Total votes display under buttons - always show */}
-        <div style={{ 
-          textAlign: "center", 
-          marginTop: "6px", 
-          fontSize: "11px", 
-          color: "#8b949e",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "8px"
-        }}>
-          <span>Total votes: <strong style={{ color: "#ffd93d" }}>{movieVotes.total}</strong></span>
-          <span style={{ color: "#666" }}>‚Ä¢</span>
-          <span>Ì±ç {movieVotes.likes}</span>
-          <span style={{ color: "#666" }}>‚Ä¢</span>
-          <span>Ì±é {movieVotes.dislikes}</span>
         </div>
 
         <hr className="divider-line" />

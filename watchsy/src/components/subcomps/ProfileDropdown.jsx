@@ -13,6 +13,7 @@ import checklist from "../../assets/checklist.png";
 import ConfirmModal from "../ConfirmModal";
 import { deriveSlug } from "../../utils/slug";
 import ai from "../../assets/ai.png";
+import pricing from "../../components/static/PricingPage.jsx";
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -125,6 +126,12 @@ function ProfileDropdown() {
         <a href="/ai" tabIndex={0} role="menuitem">
           <img src={ai} alt="AI" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           AI
+        </a>
+      </li>
+      <li>
+        <a href="/pricing" tabIndex={0} role="menuitem">
+          <img src={pricing} alt="Pricing" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Pricing
         </a>
       </li>
       <li>
