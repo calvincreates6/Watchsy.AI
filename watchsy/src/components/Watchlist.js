@@ -170,11 +170,11 @@ export default function Watchlist() {
     <>
       <Header onSearch={handleSearch} transparent={isHero} />
       {/* Fixed sidebar ad that uses remaining viewport width; hidden on smaller screens */}
-      {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
+      {/* {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
         <div style={{ position: 'fixed', left: 5, top: 120, width: 150, zIndex: 2 }}>
           <AdSlot type="sidebar" label="Sponsored • Deals for movie buffs" style={{ width: 150 }} />
         </div>
-      )}
+      )} */}
       <div className="watchlist-container">
         <div className="watchlist-header">
           <h1>My Lists</h1>

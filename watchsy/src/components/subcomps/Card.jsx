@@ -257,7 +257,7 @@ function Card(props) {
       case "watched":
         return { text: " Remove", className: "btn-primary", icon: "âŒ" };
       default:
-        return { text: " Mark to Watch", className: "btn-primary", icon: "í±€" };
+        return { text: " Mark to Watch", className: "btn-primary", icon: "ğŸ‘€" };
     }
   };
 
@@ -313,20 +313,21 @@ function Card(props) {
               fontFamily: "'Inter', sans-serif"
             }}
           >
-            {liked ? "í²– Liked" : "â¤ï¸ Like"}
+            {liked ? "ğŸ‘ Liked" : "â¤ï¸ Like"}
           </button>
         </div>
 
         {/* Vote Buttons with percentages inside */}
-        <div className="vote-buttons" style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+        <div className="vote-buttons" style={{ display: "flex", marginTop: "14px", width: "80%", marginLeft: "10%" }}>
           <button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleVote(1); }}
             disabled={voteLoading}
             style={{
+              // marginLeft: "8px",
               flex: 1,
-              padding: "8px 12px",
-              borderRadius: "8px",
+              padding: "6px 1px",
+              borderRadius: "24px 0px 0px 24px",
               border: "1px solid",
               background: userVote === 1 ? "rgba(74, 222, 128, 0.2)" : "rgba(74, 222, 128, 0.1)",
               borderColor: userVote === 1 ? "#4ade80" : "rgba(74, 222, 128, 0.3)",
@@ -339,11 +340,12 @@ function Card(props) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "2px"
+              gap: "2px",
+              justifyContent: "center"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span>í±</span>
+              {/* <span>ğŸ‘</span> */}
               <span>Like</span>
             </div>
             <div style={{ fontSize: "10px", opacity: 0.8 }}>
@@ -356,8 +358,8 @@ function Card(props) {
             disabled={voteLoading}
             style={{
               flex: 1,
-              padding: "8px 12px",
-              borderRadius: "8px",
+              padding: "6px 1px",
+              borderRadius: "0px 24px 24px 0px",
               border: "1px solid",
               background: userVote === -1 ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.1)",
               borderColor: userVote === -1 ? "#ef4444" : "rgba(239, 68, 68, 0.3)",
@@ -370,11 +372,12 @@ function Card(props) {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: "2px"
+              gap: "2px",
+              justifyContent: "center"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span>í±</span>
+              {/* <span>ğŸ‘</span> */}
               <span>Dislike</span>
             </div>
             <div style={{ fontSize: "10px", opacity: 0.8 }}>
@@ -396,12 +399,11 @@ function Card(props) {
         }}>
           <span>Total votes: <strong style={{ color: "#ffd93d" }}>{movieVotes.total}</strong></span>
           <span style={{ color: "#666" }}>â€¢</span>
-          <span>í± {movieVotes.likes}</span>
+          <span>ğŸ‘ {movieVotes.likes}</span>
           <span style={{ color: "#666" }}>â€¢</span>
-          <span>í± {movieVotes.dislikes}</span>
+          <span>ğŸ‘ {movieVotes.dislikes}</span>
         </div>
 
-        <hr className="divider-line" />
         <hr className="divider-line" />
         <hr className="divider-line" />
 

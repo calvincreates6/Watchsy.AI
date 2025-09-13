@@ -1,12 +1,6 @@
 import React, { useState } from 'react';
 import Header from '../subcomps/Header';
 import Footer from '../subcomps/Footer';
-import star from '../../assets/star.png';
-import heart from '../../assets/heart.png';
-import checklist from '../../assets/checklist.png';
-import tv from '../../assets/tv.png';
-import reel from '../../assets/video reel.png';
-import buy from '../../assets/buy.png';
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
@@ -15,19 +9,20 @@ export default function PricingPage() {
     {
       id: 'free',
       name: 'Free',
-      description: 'Perfect for casual movie lovers',
+      description: 'Great for casual viewers who just want to keep track of movies',
       price: { monthly: 0, yearly: 0 },
       features: [
-        'Create up to 3 watchlists',
-        'Like up to 50 movies',
-        'Basic movie recommendations',
-        'Access to movie database',
-        'Community features'
+        'Watchlist and Liked List',
+        'Access to movie ott streams details & trailers',
+        'Share with friends',
+        'Heatmap and streaks',
+        'Upto 10 AI Recommendations',
+
       ],
       limitations: [
-        'Limited AI recommendations',
-        'Basic search filters',
-        'Standard support'
+        'No AI personalization',
+        'Standard search filters and recommendations only',
+        'Ads included'
       ],
       popular: false,
       color: '#6b7280'
@@ -35,17 +30,16 @@ export default function PricingPage() {
     {
       id: 'pro',
       name: 'Pro',
-      description: 'For serious movie enthusiasts',
-      price: { monthly: 9.99, yearly: 99.99 },
+      description: 'Perfect for movie lovers who want deeper insights',
+      price: { monthly: 4.99, yearly: 49.99 },
       features: [
-        'Unlimited watchlists',
-        'Unlimited movie likes',
-        'Advanced AI recommendations',
-        'Priority movie updates',
-        'Advanced search & filters',
-        'Export your data',
-        'Priority support',
-        'Ad-free experience'
+        'EVERYTHING IN FREE',
+        'No Ads',
+        'upto 40 AI Recommendations',
+        'Customizable Lists',
+        'Movie stats and insights',
+        'Watched movies genre breakdown',
+        'Priority email support'
       ],
       limitations: [],
       popular: true,
@@ -54,24 +48,23 @@ export default function PricingPage() {
     {
       id: 'premium',
       name: 'Premium',
-      description: 'The ultimate movie experience',
-      price: { monthly: 19.99, yearly: 199.99 },
+      description: 'For hardcore cinephiles who want the ultimate experience',
+      price: { monthly: 8.99, yearly: 89.99 },
       features: [
-        'Everything in Pro',
-        'Exclusive movie content',
+        'EVERYTHING IN PRO',
         'Early access to new features',
-        'Personal movie curator',
-        'Custom movie collections',
-        'Advanced analytics',
-        'API access',
-        'White-label options',
-        '24/7 premium support'
+        'upto 100 AI Recommendations',
+        'In-depth movie insights & stats',
+        'Personalized AI-powered curator',
+        'Watched movies genre breakdown',
+
       ],
       limitations: [],
       popular: false,
-      color: '#d53369'
+      color: '#FF1D68'
     }
   ];
+  
 
   const handleSubscribe = (planId) => {
     // TODO: Implement subscription logic
@@ -389,31 +382,32 @@ export default function PricingPage() {
             gap: '30px'
           }}>
             {[
-              {
-                question: "Can I change my plan anytime?",
-                answer: "Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate any billing differences."
-              },
-              {
-                question: "What payment methods do you accept?",
-                answer: "We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and Apple Pay for your convenience."
-              },
-              {
-                question: "Is there a free trial?",
-                answer: "Yes! All paid plans come with a 14-day free trial. No credit card required to start your trial."
-              },
-              {
-                question: "Can I cancel anytime?",
-                answer: "Absolutely. You can cancel your subscription at any time from your account settings. You'll continue to have access until the end of your billing period."
-              },
-              {
-                question: "What happens to my data if I cancel?",
-                answer: "Your data is always yours. You can export all your watchlists, likes, and preferences before canceling, and we'll keep your data for 30 days in case you want to reactivate."
-              },
-              {
-                question: "Do you offer student discounts?",
-                answer: "Yes! Students with a valid .edu email address get 50% off all paid plans. Contact support with your student ID for verification."
-              }
-            ].map((faq, index) => (
+  {
+    question: "Can I change my plan anytime?",
+    answer: "Yes! You can upgrade or downgrade instantly. Watchlists, likes, and data remain safe."
+  },
+  {
+    question: "What payment methods do you accept?",
+    answer: "We support all major credit cards, PayPal, and Apple Pay. Easy and secure."
+  },
+  {
+    question: "Is there a trial?",
+    answer: "Yes! Pro & Premium both come with a 7-day free trial. No card required to start."
+  },
+  {
+    question: "Can I cancel anytime?",
+    answer: "Absolutely. Cancel from your account settings and keep access until the end of your billing cycle."
+  },
+  {
+    question: "What happens to my data if I cancel?",
+    answer: "Your data (watchlists, likes, preferences) stays safe. You can export anytime, and we keep it for 30 days."
+  },
+  {
+    question: "Do you offer student discounts?",
+    answer: "Yes! Students get 50% off all plans. Just verify with your student email."
+  }
+]
+.map((faq, index) => (
               <div key={index} style={{
                 background: 'rgba(255, 255, 255, 0.05)',
                 borderRadius: '12px',

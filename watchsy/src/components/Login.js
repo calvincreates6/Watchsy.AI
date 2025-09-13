@@ -62,7 +62,7 @@ const Login = () => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (u) {
         // 24 hours in ms
-        const DURATION = 24 * 60 * 60 * 1000;
+        const DURATION = 1 * 60 * 1000;
         if (timerId) clearTimeout(timerId);
         timerId = setTimeout(async () => {
           try {

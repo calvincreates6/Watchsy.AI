@@ -401,10 +401,10 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
       {/* Header Section */}
       <Header />
       <div className="ai-header" style={{
-        padding: '15px',
+        padding: '34px 8px 0px 8px',
         textAlign: 'center',
-        background: 'linear-gradient(135deg, rgba(255,0,136,0.1) 0%, rgba(0,179,255,0.1) 100%)',
-        backdropFilter: 'blur(10px)',
+        // background: '#181c24',
+        // backdropFilter: 'blur(10px)',
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
         <h1 style={{
@@ -416,7 +416,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
           marginBottom: '10px',
           textShadow: '0 2px 4px rgba(0,0,0,0.3)'
         }}>
-          AI Recommendations
+          Recommendations for You
         </h1>
         {/* Toggle center like Watchlist */}
         <p style={{
@@ -426,14 +426,14 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
           margin: '0 auto',
           lineHeight: '1.6'
         }}>
-          Discover your next favorite movie based on your watch history and preferences
+          Discover your next favorite movie based on your watch history and preferences by our Intelligent AI
         </p>
       </div>
 
       {/* Recommendations Section */}
       <div id="recommendations" className="recommendations-section" style={{ padding: '40px 20px' }}>
-        <div className="container" style={{ maxWidth: '1400px', margin: '0 auto' , direction: 'row', display: 'flex'}}>
-          <h2 style={{
+        <div className="container" style={{ maxWidth: '1400px', margin: '-40px auto 0px' , direction: 'row', display: 'flex'}}>
+          {/* <h2 style={{
             fontSize: '2rem',
             fontWeight: 'bold',
             color: 'white',
@@ -442,11 +442,11 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
             textShadow: '0 2px 4px rgba(0,0,0,0.5)'
           }}>
             Recommended for You
-          </h2>
+          </h2> */}
           {/* Ad Slot */}
-          <div style={{ margin: '40px 0', height: '100px', width: '100%'}}>
+          {/* <div style={{ margin: '40px 0', height: '100px', width: '100%'}}>
             <AdSlot width={100} height={150} />
-          </div>
+          </div> */}
           <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap: '14px', margin:'8px 0 20px' }}>
             <a href="#recommendations" style={{
               textDecoration:'none',
@@ -478,7 +478,7 @@ Recommend up to 100 movies they may also like, prioritizing matches to these pat
               <div className="spinner-border text-primary" role="status">
                 <span className="visually-hidden">Loading recommendations...</span>
               </div>
-              <p style={{ color: 'white', marginTop: '20px' }}>Analyzing your preferences...</p>
+              <p style={{ color: 'white', marginTop: '20px' }}>Analyzing Preferences based on your Liked Movies...</p>
             </div>
           ) : (
             <div className="movies-grid" style={{

@@ -13,7 +13,7 @@ import checklist from "../../assets/checklist.png";
 import ConfirmModal from "../ConfirmModal";
 import { deriveSlug } from "../../utils/slug";
 import ai from "../../assets/ai.png";
-import pricing from "../../components/static/PricingPage.jsx";
+import pricing from "../../assets/pricing.png";
 
 function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -129,12 +129,6 @@ function ProfileDropdown() {
         </a>
       </li>
       <li>
-        <a href="/pricing" tabIndex={0} role="menuitem">
-          <img src={pricing} alt="Pricing" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
-          Pricing
-        </a>
-      </li>
-      <li>
         <a href={`/${slug}/watchlist`} tabIndex={0} role="menuitem">
           <img src={checklist} alt="Watchlist" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           Watchlist
@@ -150,6 +144,12 @@ function ProfileDropdown() {
         <a href="/share" tabIndex={0} role="menuitem">
           <img src={castAndCrew} alt="Share" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
           Share with Friends
+        </a>
+      </li>
+      <li>
+        <a href="/pricing" tabIndex={0} role="menuitem">
+          <img src={pricing} alt="Pricing" style={{ width: "25px", height: "25px", marginRight: "8px" }} />
+          Pricing
         </a>
       </li>
       <li>
