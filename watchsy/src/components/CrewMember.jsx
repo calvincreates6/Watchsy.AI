@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getPersonDetails, getMoviesByPerson, fetchWatchProviders, fetchTrailers, fetchCast, fetchSimilarMovies, fetchMovieDetails } from '../api/tmdb';
+import { getPersonDetails, getMoviesByPerson, fetchWatchProviders, fetchGenres, fetchTrailers, fetchCast, fetchSimilarMovies, fetchMovieDetails } from '../api/tmdb';
 import { useUserData } from '../hooks/useUserData';
 import { useToast } from './ToastProvider';
 import { emit, on } from "../events/bus";
@@ -23,7 +23,7 @@ const CrewMember = () => {
   const navigate = useNavigate();
   const { addMovieToWatchlist, removeMovieFromWatchlist, addMovieToLiked, removeMovieFromLiked, addMovieToWatched, removeMovieFromWatched, isMovieInList } = useUserData();
   const toast = useToast();
-  
+  const [genres, setGenres] = useState({});
   const [person, setPerson] = useState(null);
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +68,22 @@ const CrewMember = () => {
     loadPersonData();
   }, [personId, toast]);
 
+  useEffect(() => {
+    const loadGenres = async () => {
+      try {
+        const genreList = await fetchGenres();
+        const genreMap = {};
+        genreList.forEach((genre) => {
+          genreMap[genre.id] = genre.name;
+        });
+        setGenres(genreMap);
+      } catch (err) {
+        console.error("Error fetching genres:", err);
+      }
+    };
+    loadGenres();
+  }, []);
+
   const handleMovieSelect = async (movie) => {
     setSelectedMovie(movie);
     
@@ -87,27 +103,48 @@ const CrewMember = () => {
     setSimilarLoading(true);
 
     try {
-      // Load watch providers
-      const providersData = await fetchWatchProviders(movie.id);
-      setProviders(providersData);
-
-      // Load trailer
-      const trailerData = await fetchTrailers(movie.id);
-      setTrailer(trailerData);
-
-      // Load cast
-      const castData = await fetchCast(movie.id);
-      setCast(castData);
-
-      // Load similar movies
-      const similarData = await fetchSimilarMovies(movie.id);
-      setSimilarMovies(similarData);
-
-      // Load movie details for runtime
+      // Load movie details first to get overview and genre_ids
       const movieDetails = await fetchMovieDetails(movie.id);
+      
+      // Debug logging
+      console.log('Original movie:', movie);
+      console.log('Movie details:', movieDetails);
+      console.log('Genres state:', genres);
+      
+      // Merge movie details with the original movie data
+      const fullMovieData = {
+        ...movie,
+        ...movieDetails,
+        // Normalize genres
+        genre_ids: movieDetails.genres
+          ? movieDetails.genres.map((g) => g.id)
+          : movie.genre_ids || [],
+        // Keep original data if movieDetails doesn't have it
+        title: movieDetails?.title || movie.title,
+        poster_path: movieDetails?.poster_path || movie.poster_path,
+        release_date: movieDetails?.release_date || movie.release_date,
+        vote_average: movieDetails?.vote_average || movie.vote_average
+      };
+      
+      // Update selectedMovie with full data
+      setSelectedMovie(fullMovieData);
+      
       if (movieDetails) {
         setRuntime(movieDetails.runtime);
       }
+
+      // Load other data in parallel
+      const [providersData, trailerData, castData, similarData] = await Promise.all([
+        fetchWatchProviders(movie.id),
+        fetchTrailers(movie.id),
+        fetchCast(movie.id),
+        fetchSimilarMovies(movie.id)
+      ]);
+
+      setProviders(providersData);
+      setTrailer(trailerData);
+      setCast(castData);
+      setSimilarMovies(similarData);
     } catch (error) {
       console.error('Error loading movie data:', error);
     } finally {
@@ -119,6 +156,21 @@ const CrewMember = () => {
 
     setShowOverlay(true);
   };
+
+  const getGenreNames = (movie) => {
+    if (!movie) return [];
+  
+    if (movie.genre_ids?.length) {
+      return movie.genre_ids.map((id) => genres[id]).filter(Boolean);
+    }
+  
+    if (movie.genres?.length) {
+      return movie.genres.map((g) => g.name).filter(Boolean);
+    }
+  
+    return [];
+  };
+  
 
   const handleMovieAction = (action, movie) => {
     const currentId = movie.id || `${movie.title}-${movie.release_date?.split('-')[0]}`;
@@ -247,7 +299,7 @@ const CrewMember = () => {
                 <h3 style={styles.biographyTitle}>Biography</h3>
                 <p style={styles.biographyText}>
                   {person.biography.length > 500 
-                    ? `${person.biography.substring(0, 500)}...` 
+                    ? `${person.biography.substring(0, 5000)}...` 
                     : person.biography
                   }
                 </p>
@@ -497,71 +549,110 @@ const CrewMember = () => {
                   </p>
                 </div>
 
+                {/* Genre Section */}
+{getGenreNames(selectedMovie).length > 0 && (
+  <div style={{ marginBottom: "28px" }}>
+    <h3 style={{
+      fontSize: "1.3rem",
+      marginBottom: "12px",
+      fontFamily: "'Montserrat', sans-serif",
+      fontWeight: "600",
+      color: "#ffffff"
+    }}>Genres</h3>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+      {getGenreNames(selectedMovie).map((g, index) => (
+        <span
+          key={g}
+          className="genre-tag"
+          style={{
+            background: "rgba(255, 217, 61, 0.1)",
+            color: "#ffd93d",
+            border: "1px solid rgba(255, 217, 61, 0.3)",
+            padding: "6px 14px",
+            borderRadius: "18px",
+            fontSize: "0.9rem",
+            fontWeight: "500",
+            animation: `fadeInUp 0.3s ease ${index * 0.1}s both`
+          }}
+        >
+          {g}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
+
+
                 {/* Cast Section */}
                 {cast && (
-                  <div style={{ marginBottom: "28px" }}>
-                    <h3 className="content-title" style={{
-                      fontSize: "1.3rem",
-                      marginBottom: "12px",
-                      fontFamily: "'Montserrat', sans-serif",
-                      fontWeight: "600"
-                    }}><img src={castAndCrew} alt="Cast & Crew" style={{ width: "25px", height: "25px" }} /> Cast & Crew</h3>
-                    {castLoading ? (
-                      <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading cast...</div>
-                    ) : cast.cast?.length > 0 ? (
-                      <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
-                        {cast.cast.map((person, index) => {
-                          const handlePersonClick = () => {
-                            navigate(`/person/${person.id}`);
-                          };
-                          return (
-                            <div key={person.id} onClick={handlePersonClick} style={{
-                              flexShrink: 0,
-                              width: "80px",
-                              textAlign: "center",
-                              animation: `fadeInUp 0.3s ease ${index * 0.1}s both`,
-                              cursor: "pointer",
-                              transition: "transform 0.2s ease"
-                            }} onMouseEnter={(e) => e.target.style.transform = "scale(1.05)"} onMouseLeave={(e) => e.target.style.transform = "scale(1)"}>
-                              <img
-                                src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
-                                alt={person.name}
-                                style={{
-                                  width: "60px",
-                                  height: "60px",
-                                  borderRadius: "50%",
-                                  objectFit: "cover",
-                                  marginBottom: "6px",
-                                  border: "2px solid rgba(255, 217, 61, 0.3)"
-                                }}
-                              />
-                              <div style={{
-                                fontSize: "0.75rem",
-                                color: "#ffd93d",
-                                fontWeight: "600",
-                                fontFamily: "'Inter', sans-serif"
-                              }}>
-                                {person.name}
-                              </div>
-                              <div style={{
-                                fontSize: "0.7rem",
-                                color: "#b8c5d6",
-                                fontFamily: "'Inter', sans-serif"
-                              }}>
-                                {person.character}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="content-body" style={{
-                        color: "#b8c5d6",
-                        fontFamily: "'Inter', sans-serif"
-                      }}>No cast information available.</div>
-                    )}
-                  </div>
-                )}
+  <div style={{ marginBottom: "28px" }}>
+    <h3 className="content-title" style={{
+      fontSize: "1.3rem",
+      marginBottom: "12px",
+      fontFamily: "'Montserrat', sans-serif",
+      fontWeight: "600",
+    }}>
+      <img src={castAndCrew} alt="Cast & Crew" style={{ width: "25px", height: "25px" }} /> Cast & Crew
+    </h3>
+    {castLoading ? (
+      <div className="content-body" style={{ fontFamily: "'Inter', sans-serif" }}>Loading cast...</div>
+    ) : cast.cast?.length > 0 ? (
+      <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
+        {cast.cast.slice(0, 20).map((person, index) => {   // ‚¨ÖÔ∏è limit to 20
+          const handlePersonClick = () => {
+            navigate(`/person/${person.id}`);
+          };
+          return (
+            <div key={person.id} onClick={handlePersonClick} style={{
+              flexShrink: 0,
+              width: "80px",
+              textAlign: "center",
+              animation: `fadeInUp 0.3s ease ${index * 0.1}s both`,
+              cursor: "pointer",
+              transition: "transform 0.2s ease"
+            }} 
+            onMouseEnter={(e) => e.target.style.transform = "scale(1.05)"} 
+            onMouseLeave={(e) => e.target.style.transform = "scale(1)"}>
+              <img
+                src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
+                alt={person.name}
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  marginBottom: "6px",
+                  border: "2px solid rgba(255, 217, 61, 0.3)"
+                }}
+              />
+              <div style={{
+                fontSize: "0.75rem",
+                color: "#ffd93d",
+                fontWeight: "600",
+                fontFamily: "'Inter', sans-serif"
+              }}>
+                {person.name}
+              </div>
+              <div style={{
+                fontSize: "0.7rem",
+                color: "#b8c5d6",
+                fontFamily: "'Inter', sans-serif"
+              }}>
+                {person.character}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div className="content-body" style={{
+        color: "#b8c5d6",
+        fontFamily: "'Inter', sans-serif"
+      }}>No cast information available.</div>
+    )}
+  </div>
+)}
+
 
                 {/* Providers section */}
                 <div style={{ marginTop: "12px" }}>
@@ -744,7 +835,7 @@ const CrewMember = () => {
                     e.target.style.transform = "translateY(0)";
                   }}
                 >
-                  {movieLiked ? "Ì≤ñ Liked" : "‚ù§Ô∏è Like"}
+                  {movieLiked ? "‚ù§Ô∏è Liked" : "üëç Like"}
                 </button>
                 <button
                   className="btn-secondary"
@@ -771,7 +862,7 @@ const CrewMember = () => {
                     e.target.style.transform = "translateY(0)";
                   }}
                 >
-                  {movieWatched ? "‚úÖ Watched" : "Ì±ÅÔ∏è Mark as Watched"}
+                  {movieWatched ? "‚úÖ Watched" : "üëÄ Mark as Watched"}
                 </button>
               </div>
 
@@ -922,6 +1013,7 @@ const styles = {
   },
   
   personInfo: {
+    // color: 'red',
     display: 'flex',
     gap: '30px',
     alignItems: 'flex-start'
@@ -995,7 +1087,13 @@ const styles = {
     fontSize: '16px',
     lineHeight: '1.6',
     color: '#b8c5d6',
-    margin: 0
+    margin: 0,
+    height: 'auto',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'normal',
+    wordBreak: 'break-word',
+    maxHeight: '500px'
   },
   
   birthday: {

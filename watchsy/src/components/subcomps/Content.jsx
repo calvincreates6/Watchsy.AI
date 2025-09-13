@@ -601,9 +601,9 @@ function Content({ searchQuery }) {
           </div>
 
           {/* Banner Ad under header */}
-          <div style={{ maxWidth: 1200, margin: "0 auto 20px auto", padding: "0 16px" }}>
+          {/* <div style={{ maxWidth: 1200, margin: "0 auto 20px auto", padding: "0 16px" }}>
             <AdSlot type="banner" label="Sponsored • Watchsy" />
-          </div>
+          </div> */}
 
           <div style={styles.movieGrid}>
             {movies.map((movie, idx) => {
@@ -615,11 +615,11 @@ function Content({ searchQuery }) {
               if (idx === 8) {
                 return (
                   <React.Fragment key={`ad-${idx}`}>
-                    <AdSlot
+                    {/* <AdSlot
                       type="inline"
                       label="Sponsored • Recommended for cinephiles"
                       style={{ width: "100%", maxWidth: "350px", height: 530, borderRadius: 14 }}
-                    />
+                    /> */}
                     <Card
                       key={movie.id}
                       id={movie.id}

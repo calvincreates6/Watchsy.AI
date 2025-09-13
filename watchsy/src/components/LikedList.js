@@ -109,11 +109,11 @@ export default function LikedList() {
     <>
       <Header onSearch={handleSearch} transparent={isHero} />
       {/* Fixed sidebar ad that uses remaining viewport width; hidden on smaller screens */}
-      {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
+      {/* {(typeof window === 'undefined' || window.innerWidth >= 1280) && (
         <div style={{ position: 'fixed', left: 5, top: 120, width: 150, zIndex: 2 }}>
           <AdSlot type="sidebar" label="Sponsored • Premium picks for you" style={{ width: 150 }} />
         </div>
-      )}
+      )} */}
       <div className="likedlist-container">
         <div className="likedlist-header">
           <h1> Your Liked Movies</h1>

@@ -341,7 +341,7 @@ export default function AI() {
             <div style={styles.header}>
               <div style={styles.headerLeft}>
                 <img src={ai} alt="AI" style={styles.avatar} />
-                <div style={styles.title}>Watchsy AI</div>
+                <div style={styles.title}>Watchsy</div>
                 <span className="ai-badge">Powered by AI</span>
               </div>
               <div style={styles.headerRight}>
